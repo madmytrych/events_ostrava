@@ -1,0 +1,92 @@
+<?php
+
+namespace App\Services\Bot;
+
+use Illuminate\Support\Facades\Lang;
+
+class TelegramTextService
+{
+    public function text(string $lang, string $key): string
+    {
+        return Lang::get('telegram.' . $key, [], $lang);
+    }
+
+    public function replacePlaceholders(string $text, array $replacements): string
+    {
+        foreach ($replacements as $key => $value) {
+            $text = str_replace(':' . $key, $value, $text);
+        }
+        return $text;
+    }
+
+    public function savedNotice(string $lang): string
+    {
+        return $this->text($lang, 'saved_notice');
+    }
+
+    public function ageSavedText(string $lang, ?int $min, ?int $max): string
+    {
+        if ($min === null && $max === null) {
+            return $this->text($lang, 'age_saved_all');
+        }
+
+        return $this->replacePlaceholders(
+            $this->text($lang, 'age_saved'),
+            ['range' => $min . '–' . $max]
+        );
+    }
+
+    public function settingsText(string $lang, bool $notifyEnabled): string
+    {
+        $state = $notifyEnabled
+            ? $this->text($lang, 'notify_state_on')
+            : $this->text($lang, 'notify_state_off');
+
+        return implode("\n", [
+            $this->text($lang, 'settings_title'),
+            $this->replacePlaceholders($this->text($lang, 'settings_weekly_status'), [
+                'value' => $state,
+            ]),
+        ]);
+    }
+
+    public function multiLanguageWelcome(): string
+    {
+        return implode("\n\n", [
+            '🇬🇧 ' . $this->text('en', 'welcome'),
+            '🇺🇦 ' . $this->text('uk', 'welcome'),
+            '🇨🇿 ' . $this->text('cs', 'welcome'),
+        ]);
+    }
+
+    public function eventDivider(): string
+    {
+        return '✨ ✨ ✨';
+    }
+
+    public function buttonText(string $lang, string $key): string
+    {
+        return $this->text($lang, 'buttons.' . $key);
+    }
+
+    public function ageButtonText(string $lang, string $key): string
+    {
+        $map = [
+            '0-3' => 'age_0_3',
+            '3-6' => 'age_3_6',
+            '6-10' => 'age_6_10',
+            'all' => 'age_all',
+        ];
+
+        return $this->text($lang, 'buttons.' . ($map[$key] ?? $key));
+    }
+
+    public function settingsNotifyButtonText(string $lang, bool $enabled): string
+    {
+        $state = $enabled
+            ? $this->text($lang, 'notify_state_on')
+            : $this->text($lang, 'notify_state_off');
+
+        return '🔔 ' . $this->text($lang, 'buttons.weekly_reminders') . ': ' . $state;
+    }
+}

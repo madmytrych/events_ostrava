@@ -1,0 +1,108 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: events_app
+    working_dir: /var/www/html/events-ostrava
+    volumes:
+      - ./:/var/www/html
+    environment:
+      APP_ENV: local
+      PHP_OPCACHE_ENABLE: "0"
+      XDEBUG_MODE: debug
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+      PHP_IDE_CONFIG: serverName=127.0.0.1
+    depends_on:
+      - db
+      - redis
+    networks:
+      - events
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: events_nginx
+    ports:
+      - "8081:80"
+    volumes:
+      - ./:/var/www/html:ro
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - app
+    networks:
+      - events
+
+  db:
+    image: mysql:8.4
+    container_name: events_db
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: city_events
+      MYSQL_USER: city_events
+      MYSQL_PASSWORD: city_events
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - events_db_data:/var/lib/mysql
+    command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    networks:
+      - events
+
+  redis:
+    image: redis:7-alpine
+    container_name: events_redis
+    ports:
+      - "6380:6379"
+    volumes:
+      - events_redis_data:/data
+    networks:
+      - events
+
+  # optional: run scheduled tasks (php artisan schedule:work)
+  scheduler:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: events_scheduler
+    working_dir: /var/www/html/events-ostrava
+    volumes:
+      - ./:/var/www/html
+    environment:
+      XDEBUG_MODE: debug
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+      PHP_IDE_CONFIG: serverName=events-ostrava
+    depends_on:
+      - app
+      - db
+      - redis
+    command: ["php", "artisan", "schedule:work"]
+    networks:
+      - events
+
+  # optional: queue worker
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: events_queue
+    working_dir: /var/www/html/events-ostrava
+    volumes:
+      - ./:/var/www/html
+    environment:
+      XDEBUG_MODE: debug
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+      PHP_IDE_CONFIG: serverName=events-ostrava
+    depends_on:
+      - app
+      - db
+      - redis
+    command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120"]
+    networks:
+      - events
+
+networks:
+  events:
+
+volumes:
+  events_db_data:
+  events_redis_data:
