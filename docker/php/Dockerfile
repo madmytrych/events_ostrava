@@ -3,7 +3,7 @@ FROM php:8.3-fpm-alpine
 # System deps
 RUN apk add --no-cache \
     bash curl git unzip icu-dev oniguruma-dev \
-    libzip-dev zlib-dev \
+    libzip-dev zlib-dev libxml2-dev \
     mysql-client \
     linux-headers \
     tzdata \
@@ -12,7 +12,7 @@ RUN apk add --no-cache \
 # PHP extensions
 RUN docker-php-ext-configure intl \
  && docker-php-ext-install -j$(nproc) \
-    pdo_mysql mbstring intl zip opcache
+    pdo_mysql mbstring intl zip opcache xml
 
 # Xdebug
 RUN pecl install xdebug \
