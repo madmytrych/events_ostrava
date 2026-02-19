@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\DTO;
@@ -25,8 +26,7 @@ final class EventData
         public ?array $tags,
         public ?bool $kidFriendly,
         public string $fingerprint
-    ) {
-    }
+    ) {}
 
     public function toArray(): array
     {

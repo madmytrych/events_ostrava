@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services\Enrichment\Providers;
@@ -37,7 +38,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
 
     private function deriveFields(array $input): array
     {
-        $text = $this->normalizeText(($input['title'] ?? '') . ' ' . ($input['description_raw'] ?? ''));
+        $text = $this->normalizeText(($input['title'] ?? '').' '.($input['description_raw'] ?? ''));
 
         [$ageMin, $ageMax] = $this->extractAgeRange($text);
         $kidFriendly = $this->detectKidFriendly($text, $ageMin, $ageMax);
@@ -160,6 +161,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
         }
 
         $summary = preg_replace('/\s+/', ' ', $source);
+
         return $this->trimSummary($summary);
     }
 
@@ -171,7 +173,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
         }
 
         if (mb_strlen($text) > 200) {
-            $text = mb_substr($text, 0, 197) . '...';
+            $text = mb_substr($text, 0, 197).'...';
         }
 
         return $text;
@@ -181,6 +183,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
     {
         $text = mb_strtolower($text);
         $text = preg_replace('/\s+/', ' ', $text);
+
         return $text;
     }
 

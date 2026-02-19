@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services\Enrichment;
@@ -11,10 +12,9 @@ use App\Services\Enrichment\Providers\RulesEnrichmentProvider;
 final class EnrichmentService
 {
     public function __construct(
-        private AiEnrichmentProvider $aiProvider,
-        private RulesEnrichmentProvider $rulesProvider
-    ) {
-    }
+        private readonly AiEnrichmentProvider $aiProvider,
+        private readonly RulesEnrichmentProvider $rulesProvider
+    ) {}
 
     public function enrich(Event $event): EnrichmentResult
     {

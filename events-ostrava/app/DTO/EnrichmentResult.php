@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\DTO;
@@ -9,6 +10,5 @@ final class EnrichmentResult
         public int $logId,
         public array $fields,
         public string $mode
-    ) {
-    }
+    ) {}
 }

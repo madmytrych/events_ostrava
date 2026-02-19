@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services\Enrichment\Providers;
@@ -155,6 +156,7 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
         if (is_int($value)) {
             return $value === 1 ? true : ($value === 0 ? false : null);
         }
+
         return null;
     }
 
@@ -170,6 +172,7 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
         if ($intValue < $min || $intValue > $max) {
             return null;
         }
+
         return $intValue;
     }
 
@@ -179,6 +182,7 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
             return null;
         }
         $value = strtolower(trim($value));
+
         return in_array($value, $allowed, true) ? $value : null;
     }
 
@@ -194,6 +198,7 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
         if (mb_strlen($summary) > 200) {
             $summary = mb_substr($summary, 0, 200);
         }
+
         return $summary;
     }
 

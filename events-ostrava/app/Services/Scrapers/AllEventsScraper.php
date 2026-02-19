@@ -12,12 +12,12 @@ use Symfony\Component\DomCrawler\Crawler;
 class AllEventsScraper implements ScraperInterface
 {
     private const SOURCE = 'allevents';
+
     private const LISTING_URL = 'https://allevents.in/ostrava/kids';
+
     private const ALLOWED_HOSTS = ['allevents.in', 'www.allevents.in'];
 
-    public function __construct(private EventUpsertService $upsertService)
-    {
-    }
+    public function __construct(private readonly EventUpsertService $upsertService) {}
 
     public function run(int $days = 60): int
     {
@@ -49,6 +49,7 @@ class AllEventsScraper implements ScraperInterface
         preg_match_all('~https?://allevents\.in/ostrava/[^"\']+/(\d{6,})~', $html, $matches);
 
         $urls = array_unique($matches[0] ?? []);
+
         return array_values($urls);
     }
 
@@ -154,6 +155,7 @@ class AllEventsScraper implements ScraperInterface
     {
         if (preg_match('~About the event\s*(.+?)\s*Also check out~s', $text, $m)) {
             $desc = trim(preg_replace('/\s+/', ' ', $m[1]));
+
             return $desc !== '' ? $desc : null;
         }
 

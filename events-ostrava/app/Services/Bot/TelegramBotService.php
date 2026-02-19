@@ -27,7 +27,7 @@ class TelegramBotService
             if (!$response->ok()) {
                 return [
                     'ok' => false,
-                    'description' => 'HTTP ' . $response->status(),
+                    'description' => 'HTTP '.$response->status(),
                 ];
             }
 
@@ -46,8 +46,7 @@ class TelegramBotService
         ?array $replyMarkup = null,
         ?string $parseMode = null,
         bool $disableWebPagePreview = true
-    ): void
-    {
+    ): void {
         $payload = [
             'chat_id' => $chatId,
             'text' => $text,
@@ -112,6 +111,6 @@ class TelegramBotService
 
     private function apiUrl(string $method): string
     {
-        return 'https://api.telegram.org/bot' . $this->token . '/' . $method;
+        return 'https://api.telegram.org/bot'.$this->token.'/'.$method;
     }
 }

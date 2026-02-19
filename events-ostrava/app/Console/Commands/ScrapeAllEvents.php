@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 class ScrapeAllEvents extends Command
 {
     protected $signature = 'events:scrape-allevents {--days=60}';
+
     protected $description = 'Scrape kids events from AllEvents.in';
 
     public function handle(AllEventsScraper $scraper): int

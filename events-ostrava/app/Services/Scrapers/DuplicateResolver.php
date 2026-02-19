@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services\Scrapers;
@@ -89,6 +90,7 @@ final class DuplicateResolver
         $text = mb_strtolower(trim($text));
         $text = preg_replace('/[^\p{L}\p{N}\s]+/u', ' ', $text);
         $text = preg_replace('/\s+/', ' ', $text);
+
         return trim($text);
     }
 }

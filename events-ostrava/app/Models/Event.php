@@ -45,12 +45,12 @@ class Event extends Model
     use HasFactory;
 
     protected $fillable = [
-        'source','source_url','source_event_id',
-        'title','start_at','end_at','venue','location_name','address','price_text',
-        'description','description_raw','summary','short_summary',
-        'title_i18n','summary_i18n','short_summary_i18n',
-        'age_min','age_max','tags','kid_friendly',
-        'indoor_outdoor','category','language',
+        'source', 'source_url', 'source_event_id',
+        'title', 'start_at', 'end_at', 'venue', 'location_name', 'address', 'price_text',
+        'description', 'description_raw', 'summary', 'short_summary',
+        'title_i18n', 'summary_i18n', 'short_summary_i18n',
+        'age_min', 'age_max', 'tags', 'kid_friendly',
+        'indoor_outdoor', 'category', 'language',
         'fingerprint',
     ];
 

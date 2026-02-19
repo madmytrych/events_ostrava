@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 
 namespace App\Services\Scrapers;
@@ -8,9 +9,7 @@ use App\Models\Event;
 
 final class EventUpsertService
 {
-    public function __construct(private DuplicateResolver $duplicateResolver)
-    {
-    }
+    public function __construct(private readonly DuplicateResolver $duplicateResolver) {}
 
     public function upsert(EventData $data): bool
     {
@@ -30,8 +29,10 @@ final class EventUpsertService
             $event->fill($data->toArray());
             if ($event->isDirty()) {
                 $event->save();
+
                 return true;
             }
+
             return false;
         }
 

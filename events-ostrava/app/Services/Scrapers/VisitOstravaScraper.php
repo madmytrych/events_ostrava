@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services\Scrapers;
 
 use App\DTO\EventData;
@@ -11,12 +12,12 @@ use Symfony\Component\DomCrawler\Crawler;
 class VisitOstravaScraper implements ScraperInterface
 {
     private const SOURCE = 'visitostrava';
+
     private const LISTING_URL = 'https://www.visitostrava.eu/cz/akce/rodina/';
+
     private const ALLOWED_HOSTS = ['www.visitostrava.eu', 'visitostrava.eu'];
 
-    public function __construct(private EventUpsertService $upsertService)
-    {
-    }
+    public function __construct(private readonly EventUpsertService $upsertService) {}
 
     public function run(int $days = 14): int
     {
@@ -25,7 +26,9 @@ class VisitOstravaScraper implements ScraperInterface
         $upserted = 0;
         foreach ($urls as $url) {
             $data = $this->fetchAndParseDetail($url);
-            if (!$data) continue;
+            if (!$data) {
+                continue;
+            }
 
             // filter next N days
             $now = Carbon::now('Europe/Prague');
@@ -53,19 +56,23 @@ class VisitOstravaScraper implements ScraperInterface
 
         while ($queue) {
             $pageUrl = array_shift($queue);
-            if (isset($visited[$pageUrl])) continue;
+            if (isset($visited[$pageUrl])) {
+                continue;
+            }
             $visited[$pageUrl] = true;
 
             $html = Http::timeout(20)->get($pageUrl)->throw()->body();
             $crawler = new Crawler($html);
 
             $baseHref = $crawler->filter('base')->first()->attr('href') ?? 'https://www.visitostrava.eu/';
-            $baseHref = rtrim($baseHref, '/') . '/';
+            $baseHref = rtrim($baseHref, '/').'/';
 
             // Find all links, then regex-filter to event detail pages.
-            $links = $crawler->filter('a')->each(fn(Crawler $a) => $a->attr('href'));
+            $links = $crawler->filter('a')->each(fn (Crawler $a) => $a->attr('href'));
             foreach ($links as $href) {
-                if (!$href) continue;
+                if (!$href) {
+                    continue;
+                }
                 $absolute = $this->toAbsoluteUrl($href, $baseHref);
                 if ($absolute === null) {
                     continue;
@@ -74,6 +81,7 @@ class VisitOstravaScraper implements ScraperInterface
                 // match https://www.visitostrava.eu/cz/akce/rodina/179785-something.html
                 if (preg_match('~^https?://www\.visitostrava\.eu/cz/akce/rodina/(\d+)-[^/]+\.html$~', $absolute)) {
                     $urls[] = $absolute;
+
                     continue;
                 }
 
@@ -98,16 +106,19 @@ class VisitOstravaScraper implements ScraperInterface
         }
 
         if (str_starts_with($href, '//')) {
-            $absolute = 'https:' . $href;
+            $absolute = 'https:'.$href;
+
             return UrlSafety::isAllowedHostUrl($absolute, self::ALLOWED_HOSTS) ? $absolute : null;
         }
 
         if (str_starts_with($href, '/')) {
-            $absolute = rtrim($baseHref, '/') . $href;
+            $absolute = rtrim($baseHref, '/').$href;
+
             return UrlSafety::isAllowedHostUrl($absolute, self::ALLOWED_HOSTS) ? $absolute : null;
         }
 
-        $absolute = $baseHref . ltrim($href, '/');
+        $absolute = $baseHref.ltrim($href, '/');
+
         return UrlSafety::isAllowedHostUrl($absolute, self::ALLOWED_HOSTS) ? $absolute : null;
     }
 
@@ -128,17 +139,23 @@ class VisitOstravaScraper implements ScraperInterface
         // These selectors might need 1–2 tweaks after you test on real pages.
         // The approach is: grab title, then grab key blocks by headings and nearby elements.
         $title = trim($crawler->filter('h1')->first()->text(''));
-        if ($title === '') return null;
+        if ($title === '') {
+            return null;
+        }
 
         // Extract event_id from URL
-        if (!preg_match('~/cz/akce/rodina/(\d+)-~', $url, $m)) return null;
+        if (!preg_match('~/cz/akce/rodina/(\d+)-~', $url, $m)) {
+            return null;
+        }
         $sourceEventId = $m[1];
 
         $detail = $this->extractDetailInfo($crawler);
         $text = preg_replace('/\s+/', ' ', $crawler->text());
 
         $startAt = $detail['start_at'] ?? $this->parseCzechDateTimeFromText($text);
-        if (!$startAt) return null;
+        if (!$startAt) {
+            return null;
+        }
 
         $venue = $detail['venue'] ?? $this->guessVenue($crawler, $text);
         $price = $detail['price_text'] ?? $this->guessPrice($crawler, $text);
@@ -180,9 +197,9 @@ class VisitOstravaScraper implements ScraperInterface
         // MVP: handle patterns like "14. ledna 2026 09:30" or similar occurrences
         // VisitOstrava uses Czech month names; we map them.
         $months = [
-            'ledna'=>1,'února'=>2,'brezna'=>3,'března'=>3,'dubna'=>4,'května'=>5,'cervna'=>6,'června'=>6,
-            'cervence'=>7,'července'=>7,'srpna'=>8,'září'=>9,'zari'=>9,'října'=>10,'rijna'=>10,
-            'listopadu'=>11,'prosince'=>12,
+            'ledna' => 1, 'února' => 2, 'brezna' => 3, 'března' => 3, 'dubna' => 4, 'května' => 5, 'cervna' => 6, 'června' => 6,
+            'cervence' => 7, 'července' => 7, 'srpna' => 8, 'září' => 9, 'zari' => 9, 'října' => 10, 'rijna' => 10,
+            'listopadu' => 11, 'prosince' => 12,
         ];
 
         // Example regex: "14. ledna 2026" + optional time "09:30"
@@ -190,15 +207,18 @@ class VisitOstravaScraper implements ScraperInterface
             return null;
         }
 
-        $day = (int)$m[1];
+        $day = (int) $m[1];
         $monthName = mb_strtolower($m[2]);
-        $year = (int)$m[3];
+        $year = (int) $m[3];
         $time = $m[4];
 
         $month = $months[$monthName] ?? null;
-        if (!$month) return null;
+        if (!$month) {
+            return null;
+        }
 
         [$hh, $mm] = array_map('intval', explode(':', $time));
+
         return Carbon::create($year, $month, $day, $hh, $mm, 0, 'Europe/Prague');
     }
 
@@ -209,7 +229,7 @@ class VisitOstravaScraper implements ScraperInterface
         // Date/time/venue from akce-info list
         if ($crawler->filter('.akce-detail .akce-info')->count()) {
             $items = $crawler->filter('.akce-detail .akce-info li')->each(
-                fn(Crawler $li) => trim($li->text(''))
+                fn (Crawler $li) => trim($li->text(''))
             );
             if (count($items) >= 2) {
                 $dateStr = $items[0] ?? '';
@@ -238,13 +258,16 @@ class VisitOstravaScraper implements ScraperInterface
         // Description + age
         $descParts = [];
         $paras = $crawler->filter('.akce-detail p')->each(
-            fn(Crawler $p) => trim($p->text(''))
+            fn (Crawler $p) => trim($p->text(''))
         );
         foreach ($paras as $p) {
-            if ($p === '') continue;
+            if ($p === '') {
+                continue;
+            }
             if (preg_match('~Doporučený\s+věk:\s*(\d+)\s*\+~ui', $p, $m)) {
-                $info['age_min'] = (int)$m[1];
+                $info['age_min'] = (int) $m[1];
                 $info['kid_friendly'] = true;
+
                 continue;
             }
             if (preg_match('~délka\s+pořadu:\s*(\d+)~ui', $p)) {
@@ -287,6 +310,7 @@ class VisitOstravaScraper implements ScraperInterface
             if ($block->filter('p')->count()) {
                 $addrLines = $block->filter('p')->each(function (Crawler $p) {
                     $text = trim(preg_replace('/\s+/', ' ', $p->text('')));
+
                     return $text !== '' ? $text : null;
                 });
             }
@@ -302,31 +326,35 @@ class VisitOstravaScraper implements ScraperInterface
     private function parseCzechDateTimeFromParts(string $dateStr, string $timeStr): ?Carbon
     {
         $months = [
-            'ledna'=>1,'února'=>2,'brezna'=>3,'března'=>3,'dubna'=>4,'května'=>5,'cervna'=>6,'června'=>6,
-            'cervence'=>7,'července'=>7,'srpna'=>8,'září'=>9,'zari'=>9,'října'=>10,'rijna'=>10,
-            'listopadu'=>11,'prosince'=>12,
+            'ledna' => 1, 'února' => 2, 'brezna' => 3, 'března' => 3, 'dubna' => 4, 'května' => 5, 'cervna' => 6, 'června' => 6,
+            'cervence' => 7, 'července' => 7, 'srpna' => 8, 'září' => 9, 'zari' => 9, 'října' => 10, 'rijna' => 10,
+            'listopadu' => 11, 'prosince' => 12,
         ];
 
         if (!preg_match('~(\d{1,2})\.\s*([A-Za-zÁÉĚÍÓÚŮÝáéěíóúůýřžščďťň]+)\s*(\d{4})~u', $dateStr, $m)) {
             return null;
         }
-        $day = (int)$m[1];
+        $day = (int) $m[1];
         $monthName = mb_strtolower($m[2]);
-        $year = (int)$m[3];
+        $year = (int) $m[3];
         $month = $months[$monthName] ?? null;
-        if (!$month) return null;
+        if (!$month) {
+            return null;
+        }
 
         if (!preg_match('~(\d{1,2}):(\d{2})~', $timeStr, $tm)) {
             return null;
         }
-        $hh = (int)$tm[1];
-        $mm = (int)$tm[2];
+        $hh = (int) $tm[1];
+        $mm = (int) $tm[2];
+
         return Carbon::create($year, $month, $day, $hh, $mm, 0, 'Europe/Prague');
     }
 
     private function normalizeWhitespace(string $text): string
     {
         $text = preg_replace('/\s+/', ' ', $text);
+
         return trim($text);
     }
 
@@ -343,8 +371,10 @@ class VisitOstravaScraper implements ScraperInterface
         // Look for "VSTUPENKY" and read nearby text (MVP regex)
         if (preg_match('~VSTUPENKY\s*(.{0,80})~u', $text, $m)) {
             $s = trim($m[1]);
+
             return $s !== '' ? $s : null;
         }
+
         return null;
     }
 
@@ -354,14 +384,15 @@ class VisitOstravaScraper implements ScraperInterface
         if (preg_match('~Adresa\s*/\s*mapa\s*(.{0,120})~ui', $text, $m)) {
             return trim($m[1]);
         }
+
         return null;
     }
 
     private function guessDescription(Crawler $crawler): ?string
     {
         // MVP approach: get main content paragraphs; tune later.
-        $paras = $crawler->filter('main p')->each(fn(Crawler $p) => trim($p->text('')));
-        $paras = array_values(array_filter($paras, fn($p) => $p !== ''));
+        $paras = $crawler->filter('main p')->each(fn (Crawler $p) => trim($p->text('')));
+        $paras = array_values(array_filter($paras, fn ($p) => $p !== ''));
 
         return $paras ? implode("\n\n", $paras) : null;
     }

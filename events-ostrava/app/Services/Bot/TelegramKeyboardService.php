@@ -4,9 +4,7 @@ namespace App\Services\Bot;
 
 class TelegramKeyboardService
 {
-    public function __construct(private TelegramTextService $texts)
-    {
-    }
+    public function __construct(private readonly TelegramTextService $texts) {}
 
     public function mainMenu(string $lang): array
     {

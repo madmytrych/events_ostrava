@@ -9,10 +9,9 @@ use App\Services\Security\UrlSafety;
 class TelegramSubmissionService
 {
     public function __construct(
-        private TelegramTextService $texts,
-        private TelegramKeyboardService $keyboards
-    ) {
-    }
+        private readonly TelegramTextService $texts,
+        private readonly TelegramKeyboardService $keyboards
+    ) {}
 
     public function start(TelegramUser $user): void
     {
@@ -43,6 +42,7 @@ class TelegramSubmissionService
     {
         if ($action === 'cancel') {
             $this->reset($user);
+
             return [
                 'text' => $this->texts->text($lang, 'submit_cancelled'),
                 'reply_markup' => $this->keyboards->mainMenu($lang),
@@ -173,6 +173,7 @@ class TelegramSubmissionService
         if (mb_strlen($value) > $maxLength) {
             return null;
         }
+
         return $value;
     }
 }

@@ -15,9 +15,7 @@ class EnrichEventJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
 
-    public function __construct(public int $eventId)
-    {
-    }
+    public function __construct(public int $eventId) {}
 
     /**
      * Execute the job.
@@ -27,16 +25,19 @@ class EnrichEventJob implements ShouldQueue
         $event = Event::query()->find($this->eventId);
         if (!$event) {
             Log::warning('EnrichEventJob: event not found', ['event_id' => $this->eventId]);
+
             return;
         }
 
         if ($event->duplicate_of_event_id) {
             Log::info('EnrichEventJob: duplicate event skipped', ['event_id' => $this->eventId]);
+
             return;
         }
 
         if ($event->short_summary && $event->enriched_at) {
             Log::info('EnrichEventJob: already enriched', ['event_id' => $this->eventId]);
+
             return;
         }
 

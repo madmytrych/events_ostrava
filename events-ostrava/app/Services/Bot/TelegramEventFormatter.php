@@ -8,9 +8,7 @@ use Illuminate\Support\Str;
 
 class TelegramEventFormatter
 {
-    public function __construct(private TelegramTextService $texts)
-    {
-    }
+    public function __construct(private readonly TelegramTextService $texts) {}
 
     public function formatEventsResponse(string $labelKey, $events, string $lang): array
     {
@@ -31,7 +29,7 @@ class TelegramEventFormatter
         }
 
         return [
-            'text' => implode("\n\n" . $this->texts->eventDivider() . "\n\n", $lines),
+            'text' => implode("\n\n".$this->texts->eventDivider()."\n\n", $lines),
             'parse_mode' => null,
         ];
     }
@@ -43,7 +41,7 @@ class TelegramEventFormatter
             $lines[] = $this->formatEvent($event, $lang);
         }
 
-        return implode("\n\n" . $this->texts->eventDivider() . "\n\n", $lines);
+        return implode("\n\n".$this->texts->eventDivider()."\n\n", $lines);
     }
 
     public function formatEvent(Event $event, string $lang): string
@@ -61,17 +59,17 @@ class TelegramEventFormatter
             $summary = $this->texts->text($lang, 'summary_fallback');
         }
 
-        $detailsLine = '🔗 ' . $this->texts->text($lang, 'details');
+        $detailsLine = '🔗 '.$this->texts->text($lang, 'details');
         if ($event->source_url) {
-            $detailsLine .= ': ' . $event->source_url;
+            $detailsLine .= ': '.$event->source_url;
         }
 
         return implode("\n", [
-            '🎨 ' . $title,
-            '👶 ' . $this->texts->text($lang, 'age_label') . ': ' . $this->formatAge($event, $lang),
-            '🕒 ' . $this->formatTimeLine($event, $lang),
-            '📍 ' . $this->formatLocation($event, $lang),
-            '🏠 ' . $this->formatIndoorOutdoor($event, $lang),
+            '🎨 '.$title,
+            '👶 '.$this->texts->text($lang, 'age_label').': '.$this->formatAge($event, $lang),
+            '🕒 '.$this->formatTimeLine($event, $lang),
+            '📍 '.$this->formatLocation($event, $lang),
+            '🏠 '.$this->formatIndoorOutdoor($event, $lang),
             '',
             $summary,
             '',
@@ -82,6 +80,7 @@ class TelegramEventFormatter
     private function shortSummary(string $text): string
     {
         $summary = trim(preg_replace('/\s+/', ' ', (string) $text));
+
         return Str::limit($summary, 200, '…');
     }
 
@@ -111,7 +110,7 @@ class TelegramEventFormatter
         }
 
         if ($event->age_min !== null && $event->age_max !== null) {
-            return $event->age_min . '–' . $event->age_max;
+            return $event->age_min.'–'.$event->age_max;
         }
 
         if ($event->age_min !== null) {
@@ -144,15 +143,16 @@ class TelegramEventFormatter
             ->locale($this->carbonLocale($lang));
 
         if ($start->toDateString() === $end->toDateString()) {
-            return $start->translatedFormat('D H:i') . '–' . $end->translatedFormat('H:i');
+            return $start->translatedFormat('D H:i').'–'.$end->translatedFormat('H:i');
         }
 
-        return $start->translatedFormat('D H:i') . '–' . $end->translatedFormat('D H:i');
+        return $start->translatedFormat('D H:i').'–'.$end->translatedFormat('D H:i');
     }
 
     private function formatLocation(Event $event, string $lang): string
     {
         $location = trim((string) ($event->location_name ?? $event->venue ?? $event->address ?? ''));
+
         return $location !== '' ? $location : $this->texts->text($lang, 'location_unknown');
     }
 

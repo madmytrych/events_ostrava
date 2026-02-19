@@ -4,8 +4,8 @@ namespace App\Console\Commands;
 
 use App\Models\TelegramUser;
 use App\Services\Bot\EventQueryService;
-use App\Services\Bot\TelegramEventFormatter;
 use App\Services\Bot\TelegramBotService;
+use App\Services\Bot\TelegramEventFormatter;
 use App\Services\Bot\TelegramKeyboardService;
 use App\Services\Bot\TelegramSubmissionService;
 use App\Services\Bot\TelegramTextService;
@@ -18,14 +18,15 @@ class TelegramPoll extends Command
     private const ALLOWED_LANGUAGES = ['uk', 'en', 'cs'];
 
     protected $signature = 'telegram:poll {--once} {--timeout=30} {--sleep=2}';
+
     protected $description = 'Poll Telegram updates and respond to commands';
 
     public function __construct(
-        private readonly TelegramBotService      $botService,
-        private readonly EventQueryService       $queryService,
+        private readonly TelegramBotService $botService,
+        private readonly EventQueryService $queryService,
         private readonly TelegramKeyboardService $keyboards,
-        private readonly TelegramTextService     $texts,
-        private readonly TelegramEventFormatter  $formatter,
+        private readonly TelegramTextService $texts,
+        private readonly TelegramEventFormatter $formatter,
         private readonly TelegramSubmissionService $submissions
     ) {
         parent::__construct();
@@ -36,6 +37,7 @@ class TelegramPoll extends Command
         $token = config('services.telegram.bot_token');
         if (!$token) {
             $this->error('Missing TELEGRAM_BOT_TOKEN in .env');
+
             return self::FAILURE;
         }
 
@@ -52,6 +54,7 @@ class TelegramPoll extends Command
                     return self::FAILURE;
                 }
                 sleep($sleep);
+
                 continue;
             }
 
@@ -75,6 +78,7 @@ class TelegramPoll extends Command
                             );
                         }
                     }
+
                     continue;
                 }
 
@@ -129,8 +133,9 @@ class TelegramPoll extends Command
             if ($lang) {
                 $user->language = $lang;
                 $user->save();
+
                 return [
-                    'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'features'),
+                    'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, 'features'),
                     'reply_markup' => $this->keyboards->mainMenu($lang),
                 ];
             }
@@ -138,7 +143,7 @@ class TelegramPoll extends Command
 
         if (!$user->language) {
             return [
-                'text' => $this->texts->multiLanguageWelcome() . "\n\n" . $this->texts->text('en', 'language_prompt'),
+                'text' => $this->texts->multiLanguageWelcome()."\n\n".$this->texts->text('en', 'language_prompt'),
                 'reply_markup' => $this->keyboards->language(),
             ];
         }
@@ -183,8 +188,9 @@ class TelegramPoll extends Command
 
         if ($action === 'submit_event') {
             $this->submissions->start($user);
+
             return [
-                'text' => $this->texts->text($lang, 'submit_intro') . "\n\n" . $this->texts->text($lang, 'submit_ask_url'),
+                'text' => $this->texts->text($lang, 'submit_intro')."\n\n".$this->texts->text($lang, 'submit_ask_url'),
                 'reply_markup' => $this->keyboards->submissionCancel($lang),
             ];
         }
@@ -197,8 +203,9 @@ class TelegramPoll extends Command
             $user->notify_enabled = !$user->notify_enabled;
             $user->save();
             $messageKey = $user->notify_enabled ? 'notify_on' : 'notify_off';
+
             return [
-                'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, $messageKey),
+                'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, $messageKey),
                 'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
             ];
         }
@@ -213,16 +220,18 @@ class TelegramPoll extends Command
         $ageRange = $this->parseAgeRange($rawText);
         if ($ageRange !== null && !str_starts_with($command, '/')) {
             $this->saveAgePreference($user, $ageRange[0], $ageRange[1]);
+
             return [
-                'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
+                'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
                 'reply_markup' => $this->keyboards->mainMenu($lang),
             ];
         }
 
         if ($command === '/age' && $ageRange !== null) {
             $this->saveAgePreference($user, $ageRange[0], $ageRange[1]);
+
             return [
-                'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
+                'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
                 'reply_markup' => $this->keyboards->mainMenu($lang),
             ];
         }
@@ -232,16 +241,18 @@ class TelegramPoll extends Command
             if ($actionValue === 'on') {
                 $user->notify_enabled = true;
                 $user->save();
+
                 return [
-                    'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'notify_on'),
+                    'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, 'notify_on'),
                     'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
                 ];
             }
             if ($actionValue === 'off') {
                 $user->notify_enabled = false;
                 $user->save();
+
                 return [
-                    'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'notify_off'),
+                    'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, 'notify_off'),
                     'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
                 ];
             }
@@ -259,6 +270,7 @@ class TelegramPoll extends Command
             $events = $this->queryService->getTodayEvents($min, $max);
             $response = $this->formatter->formatEventsResponse('label_today', $events, $lang);
             $response['reply_markup'] = $this->keyboards->mainMenu($lang);
+
             return $response;
         }
 
@@ -267,6 +279,7 @@ class TelegramPoll extends Command
             $events = $this->queryService->getTomorrowEvents($min, $max);
             $response = $this->formatter->formatEventsResponse('label_tomorrow', $events, $lang);
             $response['reply_markup'] = $this->keyboards->mainMenu($lang);
+
             return $response;
         }
 
@@ -275,6 +288,7 @@ class TelegramPoll extends Command
             $events = $this->queryService->getWeekEvents($min, $max);
             $response = $this->formatter->formatEventsResponse('label_week', $events, $lang);
             $response['reply_markup'] = $this->keyboards->mainMenu($lang);
+
             return $response;
         }
 
@@ -283,6 +297,7 @@ class TelegramPoll extends Command
             $events = $this->queryService->getWeekendEvents($min, $max);
             $response = $this->formatter->formatEventsResponse('label_weekend', $events, $lang);
             $response['reply_markup'] = $this->keyboards->mainMenu($lang);
+
             return $response;
         }
 
@@ -318,6 +333,7 @@ class TelegramPoll extends Command
         $allowed = $this->allowedAgeRanges();
 
         $key = "{$min}-{$max}";
+
         return $allowed[$key] ?? null;
     }
 
@@ -360,7 +376,7 @@ class TelegramPoll extends Command
     {
         $age = $this->texts->text($lang, 'all_ages');
         if ($user->age_min !== null && $user->age_max !== null) {
-            $age = $user->age_min . '–' . $user->age_max;
+            $age = $user->age_min.'–'.$user->age_max;
         }
 
         $notify = $user->notify_enabled
@@ -389,6 +405,7 @@ class TelegramPoll extends Command
     private function getUserLanguage(TelegramUser $user): string
     {
         $lang = $user->language ? strtolower(trim($user->language)) : null;
+
         return in_array($lang, self::ALLOWED_LANGUAGES, true) ? $lang : 'en';
     }
 
@@ -437,6 +454,7 @@ class TelegramPoll extends Command
         $text = trim($text);
         $on = $this->texts->settingsNotifyButtonText($lang, true);
         $off = $this->texts->settingsNotifyButtonText($lang, false);
+
         return $text === $on || $text === $off;
     }
 
@@ -448,6 +466,7 @@ class TelegramPoll extends Command
     private function languageFromSelection(string $text): ?string
     {
         $lang = strtolower(trim((string) str_replace('lang:', '', $text)));
+
         return in_array($lang, self::ALLOWED_LANGUAGES, true) ? $lang : null;
     }
 
@@ -470,5 +489,4 @@ class TelegramPoll extends Command
 
         return $names[$lang][$targetLang] ?? $names['en'][$targetLang] ?? $targetLang;
     }
-
 }

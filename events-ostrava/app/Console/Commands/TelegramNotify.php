@@ -4,20 +4,21 @@ namespace App\Console\Commands;
 
 use App\Models\TelegramUser;
 use App\Services\Bot\EventQueryService;
-use App\Services\Bot\TelegramEventFormatter;
 use App\Services\Bot\TelegramBotService;
+use App\Services\Bot\TelegramEventFormatter;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
 class TelegramNotify extends Command
 {
     protected $signature = 'telegram:notify {--dry-run}';
+
     protected $description = 'Send weekly reminders about weekend events to Telegram users';
 
     public function __construct(
-        private TelegramBotService $botService,
-        private EventQueryService $queryService,
-        private TelegramEventFormatter $formatter
+        private readonly TelegramBotService $botService,
+        private readonly EventQueryService $queryService,
+        private readonly TelegramEventFormatter $formatter
     ) {
         parent::__construct();
     }
@@ -27,6 +28,7 @@ class TelegramNotify extends Command
         $token = config('services.telegram.bot_token');
         if (!$token) {
             $this->error('Missing TELEGRAM_BOT_TOKEN in .env');
+
             return self::FAILURE;
         }
 
@@ -53,7 +55,7 @@ class TelegramNotify extends Command
         }
 
         $this->info('Notifications processed.');
+
         return self::SUCCESS;
     }
-
 }
