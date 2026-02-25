@@ -22,10 +22,11 @@ class ScrapeVisitOstrava extends Command
 
     public function handle(\App\Services\Scrapers\VisitOstravaScraper $scraper): int
     {
-        $days = (int)$this->option('days');
+        $days = (int) $this->option('days');
         $count = $scraper->run($days);
 
         $this->info("Upserted {$count} events.");
+
         return self::SUCCESS;
     }
 }

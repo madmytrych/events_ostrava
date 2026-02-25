@@ -101,9 +101,25 @@ TELEGRAM_BOT_TOKEN=
 ```
 
 ### MySQL database setup
+
+**Log in to the MySQL container** (when using Docker):
+
+```bash
+docker compose exec db mysql -u root -p
+# Enter password: root (or the value of MYSQL_ROOT_PASSWORD from docker-compose)
+```
+
+Or by container name:
+
+```bash
+docker exec -it events_db mysql -u root -proot
+```
+
+Then run the following SQL to create the database and user (only if they don’t already exist; the compose env vars may have created them):
+
 ```sql
-CREATE DATABASE city_events CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER 'city_events'@'%' IDENTIFIED BY 'city_events';
+CREATE DATABASE IF NOT EXISTS city_events CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE USER IF NOT EXISTS 'city_events'@'%' IDENTIFIED BY 'city_events';
 GRANT ALL PRIVILEGES ON city_events.* TO 'city_events'@'%';
 FLUSH PRIVILEGES;
 ```

@@ -9,6 +9,7 @@ final class UrlSafety
     public static function isPublicHttpUrl(string $url): bool
     {
         $host = self::parseHttpHost($url);
+
         return $host !== null && self::isPublicHost($host);
     }
 
@@ -19,6 +20,7 @@ final class UrlSafety
             return false;
         }
         $allowed = array_map('strtolower', $allowedHosts);
+
         return in_array($host, $allowed, true) && self::isPublicHost($host);
     }
 
@@ -33,6 +35,7 @@ final class UrlSafety
         if (!in_array($scheme, ['http', 'https'], true)) {
             return null;
         }
+
         return self::extractHost($parts);
     }
 

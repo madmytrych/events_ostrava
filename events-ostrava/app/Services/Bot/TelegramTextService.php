@@ -16,6 +16,7 @@ class TelegramTextService
         foreach ($replacements as $key => $value) {
             $text = str_replace(':' . $key, $value, $text);
         }
+
         return $text;
     }
 
@@ -52,16 +53,18 @@ class TelegramTextService
 
     public function multiLanguageWelcome(): string
     {
+        $locale = 'en';
+
         return implode("\n\n", [
-            '🇬🇧 ' . $this->text('en', 'welcome'),
-            '🇺🇦 ' . $this->text('uk', 'welcome'),
-            '🇨🇿 ' . $this->text('cs', 'welcome'),
+            $this->text($locale, 'lang_flag_en') . $this->text('en', 'welcome'),
+            $this->text($locale, 'lang_flag_uk') . $this->text('uk', 'welcome'),
+            $this->text($locale, 'lang_flag_cs') . $this->text('cs', 'welcome'),
         ]);
     }
 
-    public function eventDivider(): string
+    public function eventDivider(string $lang = 'en'): string
     {
-        return '✨ ✨ ✨';
+        return $this->text($lang, 'event_divider');
     }
 
     public function buttonText(string $lang, string $key): string
@@ -87,6 +90,6 @@ class TelegramTextService
             ? $this->text($lang, 'notify_state_on')
             : $this->text($lang, 'notify_state_off');
 
-        return '🔔 ' . $this->text($lang, 'buttons.weekly_reminders') . ': ' . $state;
+        return $this->text($lang, 'buttons.weekly_reminders') . ': ' . $state;
     }
 }

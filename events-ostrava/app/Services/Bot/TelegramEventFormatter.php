@@ -29,7 +29,7 @@ class TelegramEventFormatter
         }
 
         return [
-            'text' => implode("\n\n".$this->texts->eventDivider()."\n\n", $lines),
+            'text' => implode("\n\n" . $this->texts->eventDivider($lang) . "\n\n", $lines),
             'parse_mode' => null,
         ];
     }
@@ -41,7 +41,7 @@ class TelegramEventFormatter
             $lines[] = $this->formatEvent($event, $lang);
         }
 
-        return implode("\n\n".$this->texts->eventDivider()."\n\n", $lines);
+        return implode("\n\n" . $this->texts->eventDivider($lang) . "\n\n", $lines);
     }
 
     public function formatEvent(Event $event, string $lang): string
@@ -59,17 +59,17 @@ class TelegramEventFormatter
             $summary = $this->texts->text($lang, 'summary_fallback');
         }
 
-        $detailsLine = '🔗 '.$this->texts->text($lang, 'details');
+        $detailsLine = $this->texts->text($lang, 'event_card_details_prefix') . $this->texts->text($lang, 'details');
         if ($event->source_url) {
-            $detailsLine .= ': '.$event->source_url;
+            $detailsLine .= ': ' . $event->source_url;
         }
 
         return implode("\n", [
-            '🎨 '.$title,
-            '👶 '.$this->texts->text($lang, 'age_label').': '.$this->formatAge($event, $lang),
-            '🕒 '.$this->formatTimeLine($event, $lang),
-            '📍 '.$this->formatLocation($event, $lang),
-            '🏠 '.$this->formatIndoorOutdoor($event, $lang),
+            $this->texts->text($lang, 'event_card_title_prefix') . $title,
+            $this->texts->text($lang, 'event_card_age_prefix') . $this->texts->text($lang, 'age_label') . ': ' . $this->formatAge($event, $lang),
+            $this->texts->text($lang, 'event_card_time_prefix') . $this->formatTimeLine($event, $lang),
+            $this->texts->text($lang, 'event_card_location_prefix') . $this->formatLocation($event, $lang),
+            $this->texts->text($lang, 'event_card_indoor_prefix') . $this->formatIndoorOutdoor($event, $lang),
             '',
             $summary,
             '',

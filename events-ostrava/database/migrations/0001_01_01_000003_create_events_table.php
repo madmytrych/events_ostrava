@@ -24,7 +24,7 @@ return new class extends Migration
 
             $table->string('venue')->nullable();
             $table->text('address')->nullable();
-            $table->string('price_text')->nullable();
+            $table->text('price_text')->nullable();
 
             $table->longText('description')->nullable();   // raw
             $table->text('summary')->nullable();           // AI
@@ -37,7 +37,7 @@ return new class extends Migration
             $table->boolean('needs_review')->default(false);
 
             $table->string('fingerprint', 64)->unique();    // sha1 = 40, but 64 is fine
-            $table->enum('status', ['new','approved','rejected'])->default('new');
+            $table->enum('status', ['new', 'approved', 'rejected'])->default('new');
 
             $table->timestamps();
         });

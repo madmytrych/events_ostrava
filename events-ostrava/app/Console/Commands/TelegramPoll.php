@@ -135,7 +135,7 @@ class TelegramPoll extends Command
                 $user->save();
 
                 return [
-                    'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, 'features'),
+                    'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'features'),
                     'reply_markup' => $this->keyboards->mainMenu($lang),
                 ];
             }
@@ -143,7 +143,7 @@ class TelegramPoll extends Command
 
         if (!$user->language) {
             return [
-                'text' => $this->texts->multiLanguageWelcome()."\n\n".$this->texts->text('en', 'language_prompt'),
+                'text' => $this->texts->multiLanguageWelcome() . "\n\n" . $this->texts->text('en', 'language_prompt'),
                 'reply_markup' => $this->keyboards->language(),
             ];
         }
@@ -190,7 +190,7 @@ class TelegramPoll extends Command
             $this->submissions->start($user);
 
             return [
-                'text' => $this->texts->text($lang, 'submit_intro')."\n\n".$this->texts->text($lang, 'submit_ask_url'),
+                'text' => $this->texts->text($lang, 'submit_intro') . "\n\n" . $this->texts->text($lang, 'submit_ask_url'),
                 'reply_markup' => $this->keyboards->submissionCancel($lang),
             ];
         }
@@ -205,7 +205,7 @@ class TelegramPoll extends Command
             $messageKey = $user->notify_enabled ? 'notify_on' : 'notify_off';
 
             return [
-                'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, $messageKey),
+                'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, $messageKey),
                 'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
             ];
         }
@@ -222,7 +222,7 @@ class TelegramPoll extends Command
             $this->saveAgePreference($user, $ageRange[0], $ageRange[1]);
 
             return [
-                'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
+                'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
                 'reply_markup' => $this->keyboards->mainMenu($lang),
             ];
         }
@@ -231,7 +231,7 @@ class TelegramPoll extends Command
             $this->saveAgePreference($user, $ageRange[0], $ageRange[1]);
 
             return [
-                'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
+                'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->ageSavedText($lang, $ageRange[0], $ageRange[1]),
                 'reply_markup' => $this->keyboards->mainMenu($lang),
             ];
         }
@@ -243,7 +243,7 @@ class TelegramPoll extends Command
                 $user->save();
 
                 return [
-                    'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, 'notify_on'),
+                    'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'notify_on'),
                     'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
                 ];
             }
@@ -252,7 +252,7 @@ class TelegramPoll extends Command
                 $user->save();
 
                 return [
-                    'text' => $this->texts->savedNotice($lang)."\n\n".$this->texts->text($lang, 'notify_off'),
+                    'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'notify_off'),
                     'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
                 ];
             }
@@ -317,10 +317,8 @@ class TelegramPoll extends Command
     private function parseAgeRange(string $text): ?array
     {
         $text = trim($text);
-        foreach ($this->allAgesButtons() as $label) {
-            if ($text === $label) {
-                return [null, null];
-            }
+        if (in_array($text, $this->allAgesButtons(), true)) {
+            return [null, null];
         }
 
         if (!preg_match('/\b(\d+)\s*[–-]\s*(\d+)\b/u', $text, $m)) {
@@ -376,7 +374,7 @@ class TelegramPoll extends Command
     {
         $age = $this->texts->text($lang, 'all_ages');
         if ($user->age_min !== null && $user->age_max !== null) {
-            $age = $user->age_min.'–'.$user->age_max;
+            $age = $user->age_min . '–' . $user->age_max;
         }
 
         $notify = $user->notify_enabled
