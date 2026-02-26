@@ -19,8 +19,8 @@ class Kernel extends ConsoleKernel
             ->withoutOverlapping()
             ->runInBackground();
 
-        $schedule->command('events:enrich --limit=50')
-            ->everyThirtyMinutes()
+        $schedule->command('events:enrich --limit=15')
+            ->dailyAt('01:00')
             ->withoutOverlapping()
             ->runInBackground();
 

@@ -7,6 +7,7 @@ namespace App\Services\Scrapers;
 use App\DTO\EventData;
 use App\Models\Event;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Log;
 
 final class DuplicateResolver
 {
@@ -71,10 +72,24 @@ final class DuplicateResolver
         return $best;
     }
 
+    private const int MAX_DUPLICATE_CHAIN_DEPTH = 10;
+
     public function resolveDuplicateRootId(Event $event): int
     {
         $root = $event;
+        $depth = 0;
+
         while ($root->duplicate_of_event_id) {
+            if (++$depth > self::MAX_DUPLICATE_CHAIN_DEPTH) {
+                Log::warning('Circular or excessively deep duplicate chain detected', [
+                    'event_id' => $event->id,
+                    'current_id' => $root->id,
+                    'depth' => $depth,
+                ]);
+
+                return $root->id;
+            }
+
             $parent = Event::query()->find($root->duplicate_of_event_id);
             if (!$parent) {
                 break;

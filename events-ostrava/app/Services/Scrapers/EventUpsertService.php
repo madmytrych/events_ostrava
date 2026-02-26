@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Scrapers;
 
 use App\DTO\EventData;
+use App\Jobs\EnrichEventJob;
 use App\Models\Event;
 
 final class EventUpsertService
@@ -45,7 +46,11 @@ final class EventUpsertService
         }
 
         $eventData['status'] = 'new';
-        Event::create($eventData);
+        $created = Event::create($eventData);
+
+        if (! isset($eventData['duplicate_of_event_id'])) {
+            EnrichEventJob::dispatch($created->id);
+        }
 
         return true;
     }

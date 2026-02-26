@@ -8,20 +8,21 @@ use App\DTO\EnrichmentResult;
 use App\Models\Event;
 use App\Models\EventEnrichmentLog;
 use App\Services\Enrichment\Contracts\EnrichmentProviderInterface;
-use Illuminate\Support\Facades\Http;
+use App\Services\Enrichment\Contracts\LlmClientInterface;
 use Illuminate\Support\Facades\Log;
 
-final class AiEnrichmentProvider implements EnrichmentProviderInterface
+final readonly class AiEnrichmentProvider implements EnrichmentProviderInterface
 {
+    public function __construct(private LlmClientInterface $client) {}
+
+    /**
+     * @throws \Throwable
+     * @throws \JsonException
+     */
     public function enrich(Event $event, string $reason = 'ai'): EnrichmentResult
     {
-        $model = (string) config('enrichment.openai_model', 'gpt-4o-mini');
-        $apiKey = config('enrichment.openai_api_key');
-        if (!$apiKey) {
-            throw new \RuntimeException('Missing ENRICHMENT_OPENAI_API_KEY (or OPENAI_API_KEY)');
-        }
-
         $prompt = $this->buildPrompt($event);
+
         $logEntry = EventEnrichmentLog::create([
             'event_id' => $event->id,
             'mode' => 'ai',
@@ -32,45 +33,18 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
         $startedAt = microtime(true);
 
         try {
-            $response = Http::timeout((int) config('enrichment.openai_timeout', 45))
-                ->withToken($apiKey)
-                ->post((string) config('enrichment.openai_url', 'https://api.openai.com/v1/chat/completions'), [
-                    'model' => $model,
-                    'temperature' => 0.2,
-                    'response_format' => ['type' => 'json_object'],
-                    'messages' => [
-                        [
-                            'role' => 'system',
-                            'content' => 'Return ONLY valid JSON. No markdown. No extra keys.',
-                        ],
-                        [
-                            'role' => 'user',
-                            'content' => $prompt,
-                        ],
-                    ],
-                ]);
-
+            $content = $this->client->complete($prompt);
             $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
-            $body = $response->json();
-            $content = data_get($body, 'choices.0.message.content');
 
-            if (!$response->ok() || !$content) {
-                $error = $response->body();
-                $this->markLogFailed($logEntry, $durationMs, $error, $body);
-                throw new \RuntimeException('OpenAI enrichment failed.');
-            }
-
-            $parsed = json_decode($content, true);
+            $parsed = json_decode($content, true, 512, JSON_THROW_ON_ERROR);
             if (!is_array($parsed)) {
-                $this->markLogFailed($logEntry, $durationMs, 'Invalid JSON response', $body, $content);
+                $this->markLogFailed($logEntry, $durationMs, $content);
                 throw new \RuntimeException('Invalid JSON from LLM.');
             }
 
             $logEntry->update([
                 'response' => $content,
                 'status' => 'success',
-                'tokens_prompt' => data_get($body, 'usage.prompt_tokens'),
-                'tokens_completion' => data_get($body, 'usage.completion_tokens'),
                 'duration_ms' => $durationMs,
             ]);
 
@@ -80,6 +54,10 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
                 mode: 'ai'
             );
         } catch (\Throwable $e) {
+            if ($logEntry->status === 'pending') {
+                $durationMs = (int) round((microtime(true) - $startedAt) * 1000);
+                $this->markLogFailed($logEntry, $durationMs, $e->getMessage());
+            }
             Log::error('AiEnrichmentProvider error', [
                 'event_id' => $event->id,
                 'error' => $e->getMessage(),
@@ -88,6 +66,9 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
         }
     }
 
+    /**
+     * @throws \JsonException
+     */
     private function buildPrompt(Event $event): string
     {
         $payload = [
@@ -105,11 +86,16 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
             'indoor_outdoor ("indoor","outdoor","both","unknown"),',
             'category ("culture","sports","education","nature","theatre","music","festival","workshop","exhibition","other"),',
             'language ("cs","en","mixed","unknown"),',
-            'short_summary (string, max 200 chars).',
+            'short_summary (string, max 200 chars),',
+            'title_en (string, English translation of the title),',
+            'title_uk (string, Ukrainian translation of the title),',
+            'short_summary_en (string, English translation of the short_summary, max 200 chars),',
+            'short_summary_uk (string, Ukrainian translation of the short_summary, max 200 chars).',
             '',
             'If unsure, use null or "unknown". Keep summaries factual and concise.',
+            'Translations must preserve the original meaning. If the title is already in the target language, repeat it as-is.',
             '',
-            json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            \json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
         ]);
     }
 
@@ -125,6 +111,15 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
             'cs', 'en', 'mixed', 'unknown',
         ]);
 
+        $titleI18n = $this->buildI18nMap(
+            $this->normalizeTranslation($parsed['title_en'] ?? null),
+            $this->normalizeTranslation($parsed['title_uk'] ?? null),
+        );
+        $shortSummaryI18n = $this->buildI18nMap(
+            $this->normalizeSummary($parsed['short_summary_en'] ?? null),
+            $this->normalizeSummary($parsed['short_summary_uk'] ?? null),
+        );
+
         return [
             'kid_friendly' => $this->normalizeBool($parsed['is_kid_friendly'] ?? null),
             'age_min' => $this->normalizeInt($parsed['age_min'] ?? null, 0, 120),
@@ -133,6 +128,8 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
             'category' => $category,
             'language' => $language,
             'short_summary' => $this->normalizeSummary($parsed['short_summary'] ?? null),
+            'title_i18n' => $titleI18n,
+            'short_summary_i18n' => $shortSummaryI18n,
         ];
     }
 
@@ -154,7 +151,7 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
             }
         }
         if (is_int($value)) {
-            return $value === 1 ? true : ($value === 0 ? false : null);
+            return (bool) $value;
         }
 
         return null;
@@ -202,18 +199,36 @@ final class AiEnrichmentProvider implements EnrichmentProviderInterface
         return $summary;
     }
 
+    private function normalizeTranslation(mixed $value): ?string
+    {
+        if (!is_string($value)) {
+            return null;
+        }
+        $text = trim($value);
+
+        return $text === '' ? null : $text;
+    }
+
+    /**
+     * @return array<string, string>|null
+     */
+    private function buildI18nMap(?string $en, ?string $uk): ?array
+    {
+        $map = array_filter(['en' => $en, 'uk' => $uk]);
+
+        return $map === [] ? null : $map;
+    }
+
     private function markLogFailed(
         EventEnrichmentLog $logEntry,
         int $durationMs,
-        string $error,
-        ?array $body = null,
-        ?string $content = null
+        ?string $content = null,
     ): void {
         $logEntry->update([
-            'response' => $content ?: ($body ? json_encode($body) : null),
+            'response' => $content,
             'status' => 'failed',
             'duration_ms' => $durationMs,
-            'error' => mb_substr($error, 0, 1000),
+            'error' => mb_substr('Invalid JSON response', 0, 1000),
         ]);
     }
 }

@@ -7,14 +7,6 @@ services:
     working_dir: /var/www/html/events-ostrava
     volumes:
       - ./:/var/www/html
-    environment:
-      APP_ENV: local
-      PHP_OPCACHE_ENABLE: "0"
-      XDEBUG_MODE: debug
-      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
-      PHP_IDE_CONFIG: serverName=127.0.0.1
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - db
       - redis
@@ -47,6 +39,12 @@ services:
     volumes:
       - events_db_data:/var/lib/mysql
     command: ["mysqld", "--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "city_events", "-pcity_events"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
     networks:
       - events
 
@@ -66,19 +64,15 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: events_scheduler
+    restart: unless-stopped
     working_dir: /var/www/html/events-ostrava
     volumes:
       - ./:/var/www/html
-    environment:
-      XDEBUG_MODE: debug
-      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
-      PHP_IDE_CONFIG: serverName=events-ostrava
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
-      - app
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: ["php", "artisan", "schedule:work"]
     networks:
       - events
@@ -105,19 +99,15 @@ services:
       context: .
       dockerfile: docker/php/Dockerfile
     container_name: events_queue
+    restart: unless-stopped
     working_dir: /var/www/html/events-ostrava
     volumes:
       - ./:/var/www/html
-    environment:
-      XDEBUG_MODE: debug
-      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
-      PHP_IDE_CONFIG: serverName=events-ostrava
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
-      - app
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: ["php", "artisan", "queue:work", "--tries=3", "--timeout=120"]
     networks:
       - events

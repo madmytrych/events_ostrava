@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -11,6 +13,8 @@ use Illuminate\Support\Carbon;
  * @property int $chat_id
  * @property string|null $timezone
  * @property string|null $language
+ * @property int|null $age_min
+ * @property int|null $age_max
  * @property bool|null $notify_enabled
  * @property Carbon|null $notify_last_sent_at
  * @property string|null $submission_state
@@ -29,6 +33,8 @@ class TelegramUser extends Model
         'chat_id',
         'timezone',
         'language',
+        'age_min',
+        'age_max',
     ];
 
     protected $casts = [

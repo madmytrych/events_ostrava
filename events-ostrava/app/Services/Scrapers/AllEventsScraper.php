@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Scrapers;
 
 use App\DTO\EventData;

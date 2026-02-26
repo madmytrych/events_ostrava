@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Bot;
 
 class TelegramKeyboardService
@@ -106,13 +108,13 @@ class TelegramKeyboardService
         return [
             'inline_keyboard' => [
                 [
-                    ['text' => '🇺🇦 Українська', 'callback_data' => 'lang:uk'],
+                    ['text' => $this->texts->languageButtonLabel('uk'), 'callback_data' => 'lang:uk'],
                 ],
                 [
-                    ['text' => '🇬🇧 English', 'callback_data' => 'lang:en'],
+                    ['text' => $this->texts->languageButtonLabel('en'), 'callback_data' => 'lang:en'],
                 ],
                 [
-                    ['text' => '🇨🇿 Čeština', 'callback_data' => 'lang:cs'],
+                    ['text' => $this->texts->languageButtonLabel('cs'), 'callback_data' => 'lang:cs'],
                 ],
             ],
         ];

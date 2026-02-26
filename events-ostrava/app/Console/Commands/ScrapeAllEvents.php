@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console\Commands;
 
 use App\Services\Scrapers\AllEventsScraper;
@@ -19,7 +21,7 @@ class ScrapeAllEvents extends Command
         }
 
         $count = $scraper->run($days);
-        $this->info('Scraped '.$count.' AllEvents events.');
+        $this->info('Scraped ' . $count . ' AllEvents events.');
 
         return self::SUCCESS;
     }

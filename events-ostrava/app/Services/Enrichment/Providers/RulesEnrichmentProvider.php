@@ -51,6 +51,8 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
             'category' => $this->detectCategory($text),
             'language' => $this->detectLanguage($text),
             'short_summary' => $this->buildSummary($input),
+            'title_i18n' => null,
+            'short_summary_i18n' => null,
         ];
     }
 

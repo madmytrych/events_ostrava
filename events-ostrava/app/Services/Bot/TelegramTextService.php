@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Bot;
 
 use Illuminate\Support\Facades\Lang;
@@ -91,5 +93,11 @@ class TelegramTextService
             : $this->text($lang, 'notify_state_off');
 
         return $this->text($lang, 'buttons.weekly_reminders') . ': ' . $state;
+    }
+
+    public function languageButtonLabel(string $langCode): string
+    {
+        return $this->text($langCode, 'lang_flag_' . $langCode)
+            . $this->text($langCode, 'lang_label_' . $langCode);
     }
 }

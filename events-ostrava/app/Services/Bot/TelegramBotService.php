@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Services\Bot;
 
 use Illuminate\Support\Facades\Http;
@@ -27,7 +29,7 @@ class TelegramBotService
             if (!$response->ok()) {
                 return [
                     'ok' => false,
-                    'description' => 'HTTP '.$response->status(),
+                    'description' => 'HTTP ' . $response->status(),
                 ];
             }
 
@@ -111,6 +113,6 @@ class TelegramBotService
 
     private function apiUrl(string $method): string
     {
-        return 'https://api.telegram.org/bot'.$this->token.'/'.$method;
+        return 'https://api.telegram.org/bot' . $this->token . '/' . $method;
     }
 }

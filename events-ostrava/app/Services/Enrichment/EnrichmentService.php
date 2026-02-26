@@ -6,14 +6,13 @@ namespace App\Services\Enrichment;
 
 use App\DTO\EnrichmentResult;
 use App\Models\Event;
-use App\Services\Enrichment\Providers\AiEnrichmentProvider;
-use App\Services\Enrichment\Providers\RulesEnrichmentProvider;
+use App\Services\Enrichment\Contracts\EnrichmentProviderInterface;
 
 final class EnrichmentService
 {
     public function __construct(
-        private readonly AiEnrichmentProvider $aiProvider,
-        private readonly RulesEnrichmentProvider $rulesProvider
+        private readonly EnrichmentProviderInterface $aiProvider,
+        private readonly EnrichmentProviderInterface $rulesProvider
     ) {}
 
     public function enrich(Event $event): EnrichmentResult

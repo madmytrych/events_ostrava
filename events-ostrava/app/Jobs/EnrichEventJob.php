@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Jobs;
 
 use App\Models\Event;
@@ -14,6 +16,11 @@ use Illuminate\Support\Facades\Log;
 class EnrichEventJob implements ShouldQueue
 {
     use Dispatchable, InteractsWithQueue, Queueable, SerializesModels;
+
+    public int $tries = 3;
+
+    /** @var array<int, int> */
+    public array $backoff = [30, 120];
 
     public function __construct(public int $eventId) {}
 

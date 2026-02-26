@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -51,7 +53,7 @@ class Event extends Model
         'title_i18n', 'summary_i18n', 'short_summary_i18n',
         'age_min', 'age_max', 'tags', 'kid_friendly',
         'indoor_outdoor', 'category', 'language',
-        'fingerprint',
+        'fingerprint', 'status', 'is_active', 'duplicate_of_event_id',
     ];
 
     protected $casts = [
