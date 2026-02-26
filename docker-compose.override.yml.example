@@ -1,0 +1,9 @@
+# Local development overrides — NOT committed to git (see .gitignore)
+# Docker Compose merges this automatically with docker-compose.yml when present.
+# On production, this file should not exist; the base docker-compose.yml is used as-is.
+services:
+  telegram-poll:
+    environment:
+      XDEBUG_MODE: debug
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+      PHP_IDE_CONFIG: serverName=events-ostrava
