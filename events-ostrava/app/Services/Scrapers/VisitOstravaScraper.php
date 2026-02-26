@@ -9,15 +9,26 @@ use App\Services\Scrapers\Contracts\ScraperInterface;
 use App\Services\Security\UrlSafety;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
 
 class VisitOstravaScraper implements ScraperInterface
 {
-    private const SOURCE = 'visitostrava';
+    private const string SOURCE = 'visitostrava';
 
-    private const LISTING_URL = 'https://www.visitostrava.eu/cz/akce/rodina/';
+    private const string LISTING_URL = 'https://www.visitostrava.eu/cz/akce/rodina/';
 
-    private const ALLOWED_HOSTS = ['www.visitostrava.eu', 'visitostrava.eu'];
+    private const array ALLOWED_HOSTS = ['www.visitostrava.eu', 'visitostrava.eu'];
+
+    private const int REQUEST_DELAY_US = 500_000;
+
+    private const array CZECH_MONTHS = [
+        'ledna' => 1, 'února' => 2, 'brezna' => 3, 'března' => 3,
+        'dubna' => 4, 'května' => 5, 'cervna' => 6, 'června' => 6,
+        'cervence' => 7, 'července' => 7, 'srpna' => 8,
+        'září' => 9, 'zari' => 9, 'října' => 10, 'rijna' => 10,
+        'listopadu' => 11, 'prosince' => 12,
+    ];
 
     public function __construct(private readonly EventUpsertService $upsertService) {}
 
@@ -27,29 +38,33 @@ class VisitOstravaScraper implements ScraperInterface
 
         $upserted = 0;
         foreach ($urls as $url) {
-            $data = $this->fetchAndParseDetail($url);
-            if (!$data) {
-                continue;
-            }
+            try {
+                usleep(self::REQUEST_DELAY_US);
 
-            // filter next N days
-            $now = Carbon::now('Europe/Prague');
-            if ($data->startAt->lt($now) || $data->startAt->gte($now->copy()->addDays($days))) {
-                continue;
-            }
+                $data = $this->fetchAndParseDetail($url);
+                if (!$data) {
+                    continue;
+                }
 
-            if ($this->upsertEvent($data)) {
-                $upserted++;
+                $now = Carbon::now('Europe/Prague');
+                if ($data->startAt->lt($now) || $data->startAt->gte($now->copy()->addDays($days))) {
+                    continue;
+                }
+
+                if ($this->upsertEvent($data)) {
+                    $upserted++;
+                }
+            } catch (\Throwable $e) {
+                Log::warning('VisitOstravaScraper: failed to process event URL', [
+                    'url' => $url,
+                    'error' => $e->getMessage(),
+                ]);
             }
         }
 
         return $upserted;
     }
 
-    /**
-     * @throws \Illuminate\Http\Client\RequestException
-     * @throws \Illuminate\Http\Client\ConnectionException
-     */
     private function fetchListingUrls(): array
     {
         $urls = [];
@@ -63,13 +78,22 @@ class VisitOstravaScraper implements ScraperInterface
             }
             $visited[$pageUrl] = true;
 
-            $html = Http::timeout(20)->get($pageUrl)->throw()->body();
+            $response = Http::timeout(20)->get($pageUrl);
+            if (!$response->ok()) {
+                Log::warning('VisitOstravaScraper: listing page request failed', [
+                    'url' => $pageUrl,
+                    'status' => $response->status(),
+                ]);
+
+                continue;
+            }
+
+            $html = $response->body();
             $crawler = new Crawler($html);
 
             $baseHref = $crawler->filter('base')->first()->attr('href') ?? 'https://www.visitostrava.eu/';
             $baseHref = rtrim($baseHref, '/').'/';
 
-            // Find all links, then regex-filter to event detail pages.
             $links = $crawler->filter('a')->each(fn (Crawler $a) => $a->attr('href'));
             foreach ($links as $href) {
                 if (!$href) {
@@ -80,14 +104,12 @@ class VisitOstravaScraper implements ScraperInterface
                     continue;
                 }
 
-                // match https://www.visitostrava.eu/cz/akce/rodina/179785-something.html
                 if (preg_match('~^https?://www\.visitostrava\.eu/cz/akce/rodina/(\d+)-[^/]+\.html$~', $absolute)) {
                     $urls[] = $absolute;
 
                     continue;
                 }
 
-                // pagination: cz/akce/rodina/?from=24#start
                 if (preg_match('~^https?://www\.visitostrava\.eu/cz/akce/rodina/\?from=\d+~', $absolute)) {
                     $queue[] = $absolute;
                 }
@@ -138,14 +160,11 @@ class VisitOstravaScraper implements ScraperInterface
         $html = $response->body();
         $crawler = new Crawler($html);
 
-        // These selectors might need 1–2 tweaks after you test on real pages.
-        // The approach is: grab title, then grab key blocks by headings and nearby elements.
         $title = trim($crawler->filter('h1')->first()->text(''));
         if ($title === '') {
             return null;
         }
 
-        // Extract event_id from URL
         if (!preg_match('~/cz/akce/rodina/(\d+)-~', $url, $m)) {
             return null;
         }
@@ -196,15 +215,6 @@ class VisitOstravaScraper implements ScraperInterface
 
     private function parseCzechDateTimeFromText(string $text): ?Carbon
     {
-        // MVP: handle patterns like "14. ledna 2026 09:30" or similar occurrences
-        // VisitOstrava uses Czech month names; we map them.
-        $months = [
-            'ledna' => 1, 'února' => 2, 'brezna' => 3, 'března' => 3, 'dubna' => 4, 'května' => 5, 'cervna' => 6, 'června' => 6,
-            'cervence' => 7, 'července' => 7, 'srpna' => 8, 'září' => 9, 'zari' => 9, 'října' => 10, 'rijna' => 10,
-            'listopadu' => 11, 'prosince' => 12,
-        ];
-
-        // Example regex: "14. ledna 2026" + optional time "09:30"
         if (!preg_match('~(\d{1,2})\.\s*([A-Za-zÁÉĚÍÓÚŮÝáéěíóúůýřžščďťň]+)\s*(\d{4}).{0,20}?(\d{1,2}:\d{2})~u', $text, $m)) {
             return null;
         }
@@ -214,7 +224,7 @@ class VisitOstravaScraper implements ScraperInterface
         $year = (int) $m[3];
         $time = $m[4];
 
-        $month = $months[$monthName] ?? null;
+        $month = self::CZECH_MONTHS[$monthName] ?? null;
         if (!$month) {
             return null;
         }
@@ -228,7 +238,6 @@ class VisitOstravaScraper implements ScraperInterface
     {
         $info = [];
 
-        // Date/time/venue from akce-info list
         if ($crawler->filter('.akce-detail .akce-info')->count()) {
             $items = $crawler->filter('.akce-detail .akce-info li')->each(
                 fn (Crawler $li) => trim($li->text(''))
@@ -249,7 +258,6 @@ class VisitOstravaScraper implements ScraperInterface
             }
         }
 
-        // Category -> tags
         if ($crawler->filter('.akce-detail .akce-typ strong')->count()) {
             $cat = trim($crawler->filter('.akce-detail .akce-typ strong')->first()->text(''));
             if ($cat !== '') {
@@ -257,7 +265,6 @@ class VisitOstravaScraper implements ScraperInterface
             }
         }
 
-        // Description + age
         $descParts = [];
         $paras = $crawler->filter('.akce-detail p')->each(
             fn (Crawler $p) => trim($p->text(''))
@@ -273,7 +280,6 @@ class VisitOstravaScraper implements ScraperInterface
                 continue;
             }
             if (preg_match('~délka\s+pořadu:\s*(\d+)~ui', $p)) {
-                // ignore duration for now
                 continue;
             }
             $descParts[] = $p;
@@ -282,11 +288,9 @@ class VisitOstravaScraper implements ScraperInterface
             $info['description'] = implode("\n\n", $descParts);
         }
 
-        // Price block
         if ($crawler->filter('.akce-detail-right .likebut')->count()) {
             $priceHtml = $crawler->filter('.akce-detail-right .likebut')->html() ?? '';
             if ($priceHtml !== '') {
-                // Preserve spacing between paragraphs and line breaks.
                 $priceHtml = preg_replace('~</p>~i', ' ', $priceHtml);
                 $priceHtml = preg_replace('~<br\s*/?>~i', ' ', $priceHtml);
                 $priceText = strip_tags($priceHtml);
@@ -299,7 +303,6 @@ class VisitOstravaScraper implements ScraperInterface
             }
         }
 
-        // Address block (Adresa / mapa)
         if ($crawler->filter('#map .adresa .cont')->count()) {
             $block = $crawler->filter('#map .adresa .cont')->first();
             $addrLines = [];
@@ -327,19 +330,13 @@ class VisitOstravaScraper implements ScraperInterface
 
     private function parseCzechDateTimeFromParts(string $dateStr, string $timeStr): ?Carbon
     {
-        $months = [
-            'ledna' => 1, 'února' => 2, 'brezna' => 3, 'března' => 3, 'dubna' => 4, 'května' => 5, 'cervna' => 6, 'června' => 6,
-            'cervence' => 7, 'července' => 7, 'srpna' => 8, 'září' => 9, 'zari' => 9, 'října' => 10, 'rijna' => 10,
-            'listopadu' => 11, 'prosince' => 12,
-        ];
-
         if (!preg_match('~(\d{1,2})\.\s*([A-Za-zÁÉĚÍÓÚŮÝáéěíóúůýřžščďťň]+)\s*(\d{4})~u', $dateStr, $m)) {
             return null;
         }
         $day = (int) $m[1];
         $monthName = mb_strtolower($m[2]);
         $year = (int) $m[3];
-        $month = $months[$monthName] ?? null;
+        $month = self::CZECH_MONTHS[$monthName] ?? null;
         if (!$month) {
             return null;
         }
@@ -362,15 +359,11 @@ class VisitOstravaScraper implements ScraperInterface
 
     private function guessVenue(Crawler $crawler, string $text): ?string
     {
-        // Try common places first; fallback null.
-        // You’ll refine this after you inspect a few pages.
-        // Simple heuristic: often venue appears near address block; for MVP keep minimal.
         return null;
     }
 
     private function guessPrice(Crawler $crawler, string $text): ?string
     {
-        // Look for "VSTUPENKY" and read nearby text (MVP regex)
         if (preg_match('~VSTUPENKY\s*(.{0,80})~u', $text, $m)) {
             $s = trim($m[1]);
 
@@ -382,7 +375,6 @@ class VisitOstravaScraper implements ScraperInterface
 
     private function guessAddress(Crawler $crawler, string $text): ?string
     {
-        // MVP: if the page contains "Adresa" take following chunk
         if (preg_match('~Adresa\s*/\s*mapa\s*(.{0,120})~ui', $text, $m)) {
             return trim($m[1]);
         }
@@ -392,7 +384,6 @@ class VisitOstravaScraper implements ScraperInterface
 
     private function guessDescription(Crawler $crawler): ?string
     {
-        // MVP approach: get main content paragraphs; tune later.
         $paras = $crawler->filter('main p')->each(fn (Crawler $p) => trim($p->text('')));
         $paras = array_values(array_filter($paras, fn ($p) => $p !== ''));
 

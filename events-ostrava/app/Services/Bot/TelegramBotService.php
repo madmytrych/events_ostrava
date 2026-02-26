@@ -7,7 +7,7 @@ namespace App\Services\Bot;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
-class TelegramBotService
+final class TelegramBotService
 {
     private string $token;
 

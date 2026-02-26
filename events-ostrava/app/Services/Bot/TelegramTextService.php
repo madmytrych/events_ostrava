@@ -6,7 +6,7 @@ namespace App\Services\Bot;
 
 use Illuminate\Support\Facades\Lang;
 
-class TelegramTextService
+final class TelegramTextService
 {
     public function text(string $lang, string $key): string
     {
@@ -39,16 +39,23 @@ class TelegramTextService
         );
     }
 
-    public function settingsText(string $lang, bool $notifyEnabled): string
+    public function settingsText(string $lang, bool $notifyEnabled, ?bool $notifyNewEvents = false): string
     {
-        $state = $notifyEnabled
+        $weeklyState = $notifyEnabled
+            ? $this->text($lang, 'notify_state_on')
+            : $this->text($lang, 'notify_state_off');
+
+        $newEventsState = ($notifyNewEvents ?? false)
             ? $this->text($lang, 'notify_state_on')
             : $this->text($lang, 'notify_state_off');
 
         return implode("\n", [
             $this->text($lang, 'settings_title'),
             $this->replacePlaceholders($this->text($lang, 'settings_weekly_status'), [
-                'value' => $state,
+                'value' => $weeklyState,
+            ]),
+            $this->replacePlaceholders($this->text($lang, 'settings_new_events_status'), [
+                'value' => $newEventsState,
             ]),
         ]);
     }
@@ -93,6 +100,15 @@ class TelegramTextService
             : $this->text($lang, 'notify_state_off');
 
         return $this->text($lang, 'buttons.weekly_reminders') . ': ' . $state;
+    }
+
+    public function settingsNewEventsButtonText(string $lang, ?bool $enabled): string
+    {
+        $state = ($enabled ?? false)
+            ? $this->text($lang, 'notify_state_on')
+            : $this->text($lang, 'notify_state_off');
+
+        return $this->text($lang, 'buttons.new_event_alerts') . ': ' . $state;
     }
 
     public function languageButtonLabel(string $langCode): string

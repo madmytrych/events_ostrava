@@ -8,7 +8,7 @@ use App\Models\Event;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Carbon;
 
-class EventQueryService
+final class EventQueryService
 {
     public function getTodayEvents(?int $ageMin, ?int $ageMax, int $limit = 10): Collection
     {

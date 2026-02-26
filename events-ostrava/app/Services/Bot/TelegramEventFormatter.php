@@ -8,7 +8,7 @@ use App\Models\Event;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
-class TelegramEventFormatter
+final class TelegramEventFormatter
 {
     public function __construct(private readonly TelegramTextService $texts) {}
 
@@ -39,6 +39,16 @@ class TelegramEventFormatter
     public function formatDigest($events, string $lang): string
     {
         $lines = [$this->texts->text($lang, 'digest_title')];
+        foreach ($events->take(7) as $event) {
+            $lines[] = $this->formatEvent($event, $lang);
+        }
+
+        return implode("\n\n" . $this->texts->eventDivider($lang) . "\n\n", $lines);
+    }
+
+    public function formatNewEventsAlert($events, string $lang): string
+    {
+        $lines = [$this->texts->text($lang, 'new_events_title')];
         foreach ($events->take(7) as $event) {
             $lines[] = $this->formatEvent($event, $lang);
         }

@@ -8,7 +8,7 @@ use App\Models\EventSubmission;
 use App\Models\TelegramUser;
 use App\Services\Security\UrlSafety;
 
-class TelegramSubmissionService
+final class TelegramSubmissionService
 {
     public function __construct(
         private readonly TelegramTextService $texts,

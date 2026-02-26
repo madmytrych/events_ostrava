@@ -6,6 +6,8 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Carbon;
 
 /**
@@ -68,4 +70,19 @@ class Event extends Model
         'needs_review' => 'boolean',
         'is_active' => 'boolean',
     ];
+
+    public function duplicateOf(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'duplicate_of_event_id');
+    }
+
+    public function duplicates(): HasMany
+    {
+        return $this->hasMany(self::class, 'duplicate_of_event_id');
+    }
+
+    public function enrichmentLog(): BelongsTo
+    {
+        return $this->belongsTo(EventEnrichmentLog::class, 'enrichment_log_id');
+    }
 }

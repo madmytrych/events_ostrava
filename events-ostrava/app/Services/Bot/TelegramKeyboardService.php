@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Bot;
 
-class TelegramKeyboardService
+final class TelegramKeyboardService
 {
     public function __construct(private readonly TelegramTextService $texts) {}
 
@@ -54,13 +54,16 @@ class TelegramKeyboardService
         ];
     }
 
-    public function settings(string $lang, bool $notifyEnabled): array
+    public function settings(string $lang, bool $notifyEnabled, ?bool $notifyNewEvents = false): array
     {
         return [
             'keyboard' => [
                 [
                     ['text' => $this->texts->buttonText($lang, 'change_language')],
+                ],
+                [
                     ['text' => $this->texts->settingsNotifyButtonText($lang, $notifyEnabled)],
+                    ['text' => $this->texts->settingsNewEventsButtonText($lang, $notifyNewEvents)],
                 ],
                 [
                     ['text' => $this->texts->buttonText($lang, 'about')],

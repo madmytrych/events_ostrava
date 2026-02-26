@@ -6,6 +6,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Carbon;
 
 /**
@@ -31,4 +32,9 @@ class EventSubmission extends Model
         'contact',
         'status',
     ];
+
+    public function telegramUser(): BelongsTo
+    {
+        return $this->belongsTo(TelegramUser::class, 'chat_id', 'chat_id');
+    }
 }

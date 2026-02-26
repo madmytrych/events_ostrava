@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
@@ -20,7 +22,7 @@ class Kernel extends ConsoleKernel
             ->runInBackground();
 
         $schedule->command('events:enrich --limit=15')
-            ->dailyAt('01:00')
+            ->everyFourHours()
             ->withoutOverlapping()
             ->runInBackground();
 
@@ -31,6 +33,11 @@ class Kernel extends ConsoleKernel
 
         $schedule->command('telegram:notify')
             ->weeklyOn(5, '08:00')
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        $schedule->command('telegram:notify-new')
+            ->dailyAt('10:00')
             ->withoutOverlapping()
             ->runInBackground();
     }

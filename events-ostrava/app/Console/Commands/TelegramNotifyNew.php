@@ -12,11 +12,11 @@ use App\Services\Bot\TelegramMessageHandler;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 
-class TelegramNotify extends Command
+class TelegramNotifyNew extends Command
 {
-    protected $signature = 'telegram:notify {--dry-run}';
+    protected $signature = 'telegram:notify-new {--dry-run}';
 
-    protected $description = 'Send weekly reminders about weekend events to Telegram users';
+    protected $description = 'Send notifications about newly scraped events matching user age preferences';
 
     public function __construct(
         private readonly TelegramBotService $botService,
@@ -39,26 +39,44 @@ class TelegramNotify extends Command
         $dryRun = (bool) $this->option('dry-run');
 
         $users = TelegramUser::query()
-            ->where('notify_enabled', true)
+            ->where('notify_new_events', true)
             ->get();
 
+        $sent = 0;
+
         foreach ($users as $user) {
-            $events = $this->queryService->getWeekendEvents($user->age_min, $user->age_max, 7);
+            $since = $user->notify_new_events_last_sent_at ?? $user->created_at;
+
+            $events = $this->queryService->getNewEventsSince(
+                Carbon::parse($since),
+                $user->age_min,
+                $user->age_max,
+            );
+
+            $now = Carbon::now($user->timezone ?? 'Europe/Prague');
 
             if ($events->isEmpty()) {
+                if (!$dryRun) {
+                    $user->notify_new_events_last_sent_at = $now;
+                    $user->save();
+                }
+
                 continue;
             }
 
-            $text = $this->formatter->formatDigest($events, $this->handler->getUserLanguage($user));
+            $lang = $this->handler->getUserLanguage($user);
+            $text = $this->formatter->formatNewEventsAlert($events, $lang);
 
             if (!$dryRun) {
                 $this->botService->sendMessage($user->chat_id, $text);
-                $user->notify_last_sent_at = Carbon::now($user->timezone);
+                $user->notify_new_events_last_sent_at = $now;
                 $user->save();
             }
+
+            $sent++;
         }
 
-        $this->info('Notifications processed.');
+        $this->info("Notifications processed. Sent to {$sent} user(s).");
 
         return self::SUCCESS;
     }

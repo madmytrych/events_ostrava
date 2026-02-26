@@ -80,8 +80,8 @@ final class TelegramMessageHandler
 
         if ($action === 'settings') {
             return [
-                'text' => $this->texts->settingsText($lang, $user->notify_enabled),
-                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
+                'text' => $this->texts->settingsText($lang, $user->notify_enabled, $user->notify_new_events),
+                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
             ];
         }
 
@@ -95,7 +95,7 @@ final class TelegramMessageHandler
         if ($action === 'about') {
             return [
                 'text' => $this->texts->text($lang, 'about'),
-                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
+                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
             ];
         }
 
@@ -126,7 +126,18 @@ final class TelegramMessageHandler
 
             return [
                 'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, $messageKey),
-                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
+                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
+            ];
+        }
+
+        if ($action === 'toggle_notify_new') {
+            $user->notify_new_events = !$user->notify_new_events;
+            $user->save();
+            $messageKey = $user->notify_new_events ? 'notify_new_on' : 'notify_new_off';
+
+            return [
+                'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, $messageKey),
+                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
             ];
         }
 
@@ -165,7 +176,7 @@ final class TelegramMessageHandler
 
                 return [
                     'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'notify_on'),
-                    'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
+                    'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
                 ];
             }
             if ($actionValue === 'off') {
@@ -174,7 +185,7 @@ final class TelegramMessageHandler
 
                 return [
                     'text' => $this->texts->savedNotice($lang) . "\n\n" . $this->texts->text($lang, 'notify_off'),
-                    'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
+                    'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
                 ];
             }
         }
@@ -182,7 +193,7 @@ final class TelegramMessageHandler
         if ($command === '/prefs') {
             return [
                 'text' => $this->formatPrefs($user, $lang),
-                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled),
+                'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
             ];
         }
 
@@ -289,6 +300,10 @@ final class TelegramMessageHandler
             ? $this->texts->text($lang, 'notify_state_on')
             : $this->texts->text($lang, 'notify_state_off');
 
+        $notifyNew = $user->notify_new_events
+            ? $this->texts->text($lang, 'notify_state_on')
+            : $this->texts->text($lang, 'notify_state_off');
+
         return implode("\n", [
             $this->texts->text($lang, 'prefs_title'),
             $this->texts->replacePlaceholders($this->texts->text($lang, 'prefs_language'), [
@@ -299,6 +314,9 @@ final class TelegramMessageHandler
             ]),
             $this->texts->replacePlaceholders($this->texts->text($lang, 'prefs_notify'), [
                 'value' => $notify,
+            ]),
+            $this->texts->replacePlaceholders($this->texts->text($lang, 'prefs_notify_new'), [
+                'value' => $notifyNew,
             ]),
         ]);
     }
@@ -338,6 +356,10 @@ final class TelegramMessageHandler
             return 'toggle_notify';
         }
 
+        if ($this->isNewEventsToggle($text, $lang)) {
+            return 'toggle_notify_new';
+        }
+
         return null;
     }
 
@@ -346,6 +368,15 @@ final class TelegramMessageHandler
         $text = trim($text);
         $on = $this->texts->settingsNotifyButtonText($lang, true);
         $off = $this->texts->settingsNotifyButtonText($lang, false);
+
+        return $text === $on || $text === $off;
+    }
+
+    private function isNewEventsToggle(string $text, string $lang): bool
+    {
+        $text = trim($text);
+        $on = $this->texts->settingsNewEventsButtonText($lang, true);
+        $off = $this->texts->settingsNewEventsButtonText($lang, false);
 
         return $text === $on || $text === $off;
     }
