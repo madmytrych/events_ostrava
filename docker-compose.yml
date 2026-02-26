@@ -79,6 +79,22 @@ services:
     networks:
       - events
 
+  telegram-poll:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: events_telegram_poll
+    restart: unless-stopped
+    working_dir: /var/www/html/events-ostrava
+    volumes:
+      - ./:/var/www/html
+    depends_on:
+      - db
+      - redis
+    command: ["php", "artisan", "telegram:poll", "--timeout=30", "--sleep=2"]
+    networks:
+      - events
+
   # optional: queue worker
   queue:
     build:

@@ -61,9 +61,16 @@ So in short: **Events Ostrava** is the system that gathers and enriches family e
 - Optional Docker + Nginx
 
 ## Docker (quick usage)
-Start services:
+
+Start all services (app, nginx, db, redis, scheduler, queue, telegram-poll):
 ```bash
 docker compose up -d
+```
+
+Start only specific services:
+```bash
+docker compose up -d app nginx db redis   # web only
+docker compose up -d telegram-poll        # bot only
 ```
 
 Enter the app container (pick one):
@@ -73,6 +80,28 @@ docker exec -it events_app bash
 ```
 
 App URL (via Nginx): `http://localhost:8081`
+
+### Local vs production (Docker)
+
+The project uses a `docker-compose.override.yml` for local development. Docker Compose merges it automatically with `docker-compose.yml` when the file is present. It is gitignored and should **not** be copied to the VPS.
+
+| | Local | VPS / Production |
+|---|---|---|
+| Xdebug | enabled via `docker-compose.override.yml` | off (file absent) |
+| `restart: unless-stopped` | has no visible effect (you stop manually) | container auto-restarts on crash and after VPS reboot |
+| `.env` | `APP_ENV=local`, `APP_DEBUG=true` | `APP_ENV=production`, `APP_DEBUG=false` |
+
+**Local override file** (`docker-compose.override.yml`) — create once, never commit:
+```yaml
+services:
+  telegram-poll:
+    environment:
+      XDEBUG_MODE: debug
+      XDEBUG_CONFIG: client_host=host.docker.internal client_port=9003
+      PHP_IDE_CONFIG: serverName=events-ostrava
+```
+
+A ready-made copy is included in the repo root as `docker-compose.override.yml` — it is gitignored so each developer or environment keeps their own.
 
 ## First Run (from zero)
 ```bash
@@ -199,9 +228,28 @@ php artisan queue:work --tries=3 --timeout=120
 ```
 
 ### Telegram bot
+
+**With Docker (recommended):**
+```bash
+# Start the bot container (auto-restarts on crash)
+docker compose up -d telegram-poll
+
+# Follow logs
+docker compose logs -f telegram-poll
+
+# Restart after a code change
+docker compose build telegram-poll && docker compose up -d telegram-poll
+
+# Verify the update offset is persisted in the cache
+docker compose exec telegram-poll php artisan tinker --execute="echo Cache::get('telegram:last_update_id', 'NOT SET');"
+```
+
+**Without Docker (local/manual):**
 ```bash
 php artisan telegram:poll
 ```
+
+The polling offset (`last_update_id`) is stored in the database cache table (`CACHE_STORE=database`), so it survives container restarts and VPS reboots without replaying old messages.
 
 Bot commands:
 - `/today [0-3|3-6|6-10]`
@@ -219,11 +267,14 @@ php artisan schedule:work
 ```
 
 ## Deployment checklist (minimal)
-- Set `.env` with DB credentials, OpenAI key (or set `ENRICHMENT_MODE=rules`), and `TELEGRAM_BOT_TOKEN`.
+- Set `.env` with `APP_ENV=production`, `APP_DEBUG=false`, DB credentials, OpenAI key (or `ENRICHMENT_MODE=rules`), and `TELEGRAM_BOT_TOKEN`.
+- Do **not** copy `docker-compose.override.yml` to the VPS.
 - Run `php artisan migrate`.
-- Run `php artisan queue:work` (supervisor recommended).
-- Run `php artisan telegram:poll` (supervisor recommended).
-- Set up `php artisan schedule:work` or cron.
+- Start all long-running services via Docker (they auto-restart on crash and VPS reboot):
+  ```bash
+  docker compose up -d queue scheduler telegram-poll
+  ```
+- The `telegram-poll` container uses `restart: unless-stopped` — no separate Supervisor or systemd unit needed.
 
 ## Data Model (events)
 Fields:
