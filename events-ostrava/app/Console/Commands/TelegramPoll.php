@@ -12,6 +12,7 @@ use App\Services\Bot\TelegramTextService;
 use Illuminate\Console\Command;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class TelegramPoll extends Command
 {
@@ -36,6 +37,7 @@ class TelegramPoll extends Command
     {
         $token = config('services.telegram.bot_token');
         if (!$token) {
+            Log::error('telegram:poll aborted — TELEGRAM_BOT_TOKEN is not set');
             $this->error('Missing TELEGRAM_BOT_TOKEN in .env');
 
             return self::FAILURE;
@@ -49,7 +51,11 @@ class TelegramPoll extends Command
         do {
             $updates = $this->botService->getUpdates($offset + 1, $timeout);
             if (!($updates['ok'] ?? false)) {
-                $this->warn('Telegram getUpdates failed.');
+                Log::warning('telegram:poll getUpdates failed', [
+                    'description' => $updates['description'] ?? 'unknown',
+                    'offset' => $offset,
+                ]);
+                $this->warn('Telegram getUpdates failed: ' . ($updates['description'] ?? 'unknown'));
                 if ($once) {
                     return self::FAILURE;
                 }
