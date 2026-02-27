@@ -15,6 +15,9 @@ final class EnrichmentService
         private readonly EnrichmentProviderInterface $rulesProvider
     ) {}
 
+    /**
+     * @throws \Throwable
+     */
     public function enrich(Event $event): EnrichmentResult
     {
         $mode = (string) config('enrichment.mode', 'hybrid');

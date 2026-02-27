@@ -11,13 +11,23 @@ class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule): void
     {
-        $schedule->command('events:scrape-visitostrava --days=14')
+        $schedule->command('events:scrape visitostrava --days=14')
             ->twiceDaily(6, 18)
             ->withoutOverlapping()
             ->runInBackground();
 
-        $schedule->command('events:scrape-allevents --days=60')
+        $schedule->command('events:scrape allevents --days=60')
             ->twiceDaily(7, 19)
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        $schedule->command('events:scrape kulturajih --days=30')
+            ->twiceDaily(8, 20)
+            ->withoutOverlapping()
+            ->runInBackground();
+
+        $schedule->command('events:scrape kudyznudy --days=30')
+            ->twiceDaily(9, 21)
             ->withoutOverlapping()
             ->runInBackground();
 

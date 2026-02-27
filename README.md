@@ -10,7 +10,7 @@ Laravel app for collecting and enriching family event listings in Ostrava. It sc
 
 ### What the project does
 
-- **Collects events** from trusted public sources (e.g. Visit Ostrava family section, AllEvents kids in Ostrava). Events are fetched on a schedule and stored in one place.
+- **Collects events** from trusted public sources (e.g. Visit Ostrava family section, AllEvents kids in Ostrava, Kultura Jih children's events, Kudy z nudy Ostrava). Events are fetched on a schedule and stored in one place.
 - **Cleans and enriches** the data: duplicate events are detected and linked, and each event gets a short summary and useful details (age range, indoor/outdoor, etc.) so parents can quickly see if it fits their family.
 - **Delivers events via Telegram**: users open the bot, choose their language and (optionally) their child’s age, then get lists of events for today, tomorrow, this week, or this weekend. No ads, no clutter—just event info.
 - **Accepts suggestions**: users can submit an event by sending a link; the bot guides them through optional name, description, and contact. Submissions are stored for later review.
@@ -38,7 +38,7 @@ The bot supports **English**, **Ukrainian**, and **Czech**. On first use, the us
    - **About**: short description of the project and the bot.
 
 3. **Behind the scenes (data pipeline)**  
-   - **Scraping**: scheduled jobs fetch new events from Visit Ostrava (family) and AllEvents (kids in Ostrava) and insert or update them in the database.  
+   - **Scraping**: scheduled jobs fetch new events from Visit Ostrava (family), AllEvents (kids in Ostrava), Kultura Jih (children's events), and Kudy z nudy (Ostrava region) and insert or update them in the database.  
    - **Enrichment**: each new/updated event is processed to add summaries and metadata (with a fallback if AI is unavailable).  
    - **Deduplication**: same event from different sources is linked to one canonical record.  
    - **Cleanup**: past events are periodically marked inactive.  
@@ -49,7 +49,8 @@ So in short: **Events Ostrava** is the system that gathers and enriches family e
 ---
 
 ## Features (technical)
-- Scrape VisitOstrava and AllEvents kids listings.
+- Scrape VisitOstrava, AllEvents, Kultura Jih, and Kudy z nudy event listings.
+- Pluggable scraper architecture — add a new source by extending `AbstractScraper` and registering it in `config/scrapers.php`.
 - Deduplicate and link duplicates.
 - Hybrid enrichment (AI or rules fallback) with logs.
 - Telegram bot commands for family events.
@@ -156,8 +157,10 @@ FLUSH PRIVILEGES;
 ### Initialize app
 ```bash
 php artisan migrate &&
-php artisan events:scrape-visitostrava --days=14 &&
-php artisan events:scrape-allevents --days=60 &&
+php artisan events:scrape visitostrava --days=14 &&
+php artisan events:scrape allevents --days=60 &&
+php artisan events:scrape kulturajih --days=30 &&
+php artisan events:scrape kudyznudy --days=30 &&
 php artisan events:enrich --limit=50 &&
 php artisan queue:work 
 php artisan telegram:poll
@@ -211,9 +214,19 @@ TELEGRAM_BOT_TOKEN=
 
 ## Commands (custom)
 ### Scraping
+
+Unified command — pass the source name as the first argument:
 ```bash
-php artisan events:scrape-visitostrava --days=140
-php artisan events:scrape-allevents --days=600
+php artisan events:scrape visitostrava --days=14
+php artisan events:scrape allevents --days=60
+php artisan events:scrape kulturajih --days=30
+php artisan events:scrape kudyznudy --days=30
+```
+
+Legacy aliases still work:
+```bash
+php artisan events:scrape-visitostrava --days=14
+php artisan events:scrape-allevents --days=60
 ```
 
 ### Enrichment (Queue)

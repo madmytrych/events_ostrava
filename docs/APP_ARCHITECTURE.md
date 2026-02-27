@@ -7,16 +7,17 @@ High-level diagram of console commands, scheduled tasks, jobs, and main services
 ```mermaid
 flowchart TB
     subgraph Scheduler["⏰ Laravel Scheduler (Kernel)"]
-        S1["events:scrape-visitostrava<br/><i>twice daily 06:00, 18:00</i>"]
-        S2["events:scrape-allevents<br/><i>twice daily 07:00, 19:00</i>"]
-        S3["events:enrich --limit=50<br/><i>every 30 min</i>"]
+        S1["events:scrape visitostrava<br/><i>twice daily 06:00, 18:00</i>"]
+        S2["events:scrape allevents<br/><i>twice daily 07:00, 19:00</i>"]
+        S2b["events:scrape kulturajih<br/><i>twice daily 08:00, 20:00</i>"]
+        S2c["events:scrape kudyznudy<br/><i>twice daily 09:00, 21:00</i>"]
+        S3["events:enrich --limit=15<br/><i>every 4 hours</i>"]
         S4["events:deactivate-past --grace-hours=2<br/><i>hourly</i>"]
         S5["telegram:notify<br/><i>weekly Fri 08:00</i>"]
     end
 
     subgraph Commands["Console commands"]
-        C1[ScrapeVisitOstrava]
-        C2[ScrapeAllEvents]
+        C0["ScrapeEvents<br/><i>events:scrape {source}</i>"]
         C3[EnrichEvents]
         C4[DeactivatePastEvents]
         C5[TelegramNotify]
@@ -27,9 +28,15 @@ flowchart TB
         J1[EnrichEventJob]
     end
 
-    subgraph Scrapers["Scrapers"]
+    subgraph Scrapers["Scrapers (via AbstractScraper)"]
         VisitOstrava[VisitOstravaScraper]
         AllEvents[AllEventsScraper]
+        KulturaJih[KulturaJihScraper]
+        KudyZNudy[KudyZNudyScraper]
+    end
+
+    subgraph ScraperConfig["config/scrapers.php"]
+        Registry["source → class mapping"]
     end
 
     subgraph Enrichment["Enrichment"]
@@ -52,16 +59,23 @@ flowchart TB
         TelegramUser[(TelegramUser)]
     end
 
-    S1 --> C1
-    S2 --> C2
+    S1 --> C0
+    S2 --> C0
+    S2b --> C0
+    S2c --> C0
     S3 --> C3
     S4 --> C4
     S5 --> C5
 
-    C1 --> VisitOstrava
-    C2 --> AllEvents
+    C0 --> Registry
+    Registry --> VisitOstrava
+    Registry --> AllEvents
+    Registry --> KulturaJih
+    Registry --> KudyZNudy
     VisitOstrava --> Event
     AllEvents --> Event
+    KulturaJih --> Event
+    KudyZNudy --> Event
 
     C3 --> Event
     C3 -->|"dispatch per event"| J1
@@ -96,9 +110,12 @@ flowchart TB
 
 | Command | Schedule | Description |
 |--------|----------|-------------|
-| `events:scrape-visitostrava` | Twice daily (06:00, 18:00) | Scrapes VisitOstrava family events, upserts into DB (default 14 days). |
-| `events:scrape-allevents` | Twice daily (07:00, 19:00) | Scrapes kids events from AllEvents.in (default 60 days). |
-| `events:enrich` | Every 30 min | Finds active events without `short_summary`, dispatches one `EnrichEventJob` per event (default limit 50). |
+| `events:scrape {source}` | Per source (see below) | Unified scraper command. Resolves the scraper class from `config/scrapers.php` and runs it. |
+| `events:scrape visitostrava` | Twice daily (06:00, 18:00) | Scrapes VisitOstrava family events, upserts into DB (default 14 days). |
+| `events:scrape allevents` | Twice daily (07:00, 19:00) | Scrapes kids events from AllEvents.in (default 60 days). |
+| `events:scrape kulturajih` | Twice daily (08:00, 20:00) | Scrapes children's events from Kultura Jih Ostrava (default 30 days). |
+| `events:scrape kudyznudy` | Twice daily (09:00, 21:00) | Scrapes Ostrava events from Kudy z nudy via JSON-LD (default 30 days). |
+| `events:enrich` | Every 4 hours | Finds active events without `short_summary`, dispatches one `EnrichEventJob` per event (default limit 15). |
 | `events:deactivate-past` | Hourly | Marks past events as inactive (default grace 2 hours). |
 | `telegram:notify` | Weekly Friday 08:00 | Sends weekly digest of weekend events to users with `notify_enabled`. |
 | `telegram:poll` | **Not scheduled** | Long-running: polls Telegram API, handles /start, /today, /week, settings, event submission, etc. Run via supervisor or manually. |
@@ -109,9 +126,15 @@ flowchart TB
 |-----|----------------|--------|
 | `EnrichEventJob` | `events:enrich` command | Queued per event; runs AI/rules enrichment (short_summary, etc.) via `EnrichmentService` and its providers. |
 
+## Adding a new scraper
+
+1. Create a class extending `AbstractScraper` in `app/Services/Scrapers/`. Implement four methods: `source()`, `allowedHosts()`, `fetchListingUrls()`, `parseDetailPage()`.
+2. Add an entry to `config/scrapers.php` mapping the source name to the class.
+3. Add a schedule line in `app/Console/Kernel.php`.
+
 ## Data flow (simplified)
 
-1. **Ingest**: Scrapers → `Event` (VisitOstrava, AllEvents).
+1. **Ingest**: Scrapers → `Event` (VisitOstrava, AllEvents, KulturaJih, KudyZNudy). New sources are added via `config/scrapers.php`.
 2. **Enrich**: `events:enrich` → queue `EnrichEventJob` → update `Event` (short_summary, enriched_at, etc.).
 3. **Lifecycle**: `events:deactivate-past` → set `is_active = false` for past events.
 4. **Telegram**: `telegram:poll` serves users; `telegram:notify` sends weekly digests. Both use `Event` (via `EventQueryService`) and `TelegramUser`.

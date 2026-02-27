@@ -8,9 +8,9 @@ use App\DTO\EventData;
 use App\Jobs\EnrichEventJob;
 use App\Models\Event;
 
-final class EventUpsertService
+final readonly class EventUpsertService
 {
-    public function __construct(private readonly DuplicateResolver $duplicateResolver) {}
+    public function __construct(private DuplicateResolver $duplicateResolver) {}
 
     public function upsert(EventData $data): bool
     {
@@ -22,7 +22,7 @@ final class EventUpsertService
             );
         }
 
-        $event = Event::where('source', $data->source)
+        $event = (new Event)->where('source', $data->source)
             ->where('source_event_id', $data->sourceEventId)
             ->first();
 
@@ -46,9 +46,9 @@ final class EventUpsertService
         }
 
         $eventData['status'] = 'new';
-        $created = Event::create($eventData);
+        $created = (new Event)->create($eventData);
 
-        if (! isset($eventData['duplicate_of_event_id'])) {
+        if (!isset($eventData['duplicate_of_event_id'])) {
             EnrichEventJob::dispatch($created->id);
         }
 

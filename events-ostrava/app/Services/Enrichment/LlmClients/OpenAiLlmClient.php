@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Services\Enrichment\LlmClients;
 
 use App\Services\Enrichment\Contracts\LlmClientInterface;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Http;
 
 final readonly class OpenAiLlmClient implements LlmClientInterface
@@ -16,6 +17,9 @@ final readonly class OpenAiLlmClient implements LlmClientInterface
         private int $timeout = 45,
     ) {}
 
+    /**
+     * @throws ConnectionException
+     */
     public function complete(string $prompt): string
     {
         $response = Http::timeout($this->timeout)

@@ -5,63 +5,31 @@ declare(strict_types=1);
 namespace App\Services\Scrapers;
 
 use App\DTO\EventData;
-use App\Services\Scrapers\Contracts\ScraperInterface;
 use App\Services\Security\UrlSafety;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\DomCrawler\Crawler;
 
-class AllEventsScraper implements ScraperInterface
+final class AllEventsScraper extends AbstractScraper
 {
-    private const string SOURCE = 'allevents';
-
     private const string LISTING_URL = 'https://allevents.in/ostrava/kids';
 
-    private const array ALLOWED_HOSTS = ['allevents.in', 'www.allevents.in'];
-
-    private const int REQUEST_DELAY_US = 500_000;
-
-    public function __construct(private readonly EventUpsertService $upsertService) {}
-
-    public function run(int $days = 60): int
+    protected function source(): string
     {
-        $urls = $this->fetchListingUrls();
-
-        $upserted = 0;
-        foreach ($urls as $url) {
-            try {
-                usleep(self::REQUEST_DELAY_US);
-
-                $data = $this->fetchAndParseDetail($url);
-                if (!$data) {
-                    continue;
-                }
-
-                $now = Carbon::now('Europe/Prague');
-                if ($data->startAt->lt($now) || $data->startAt->gte($now->copy()->addDays($days))) {
-                    continue;
-                }
-
-                if ($this->upsertEvent($data)) {
-                    $upserted++;
-                }
-            } catch (\Throwable $e) {
-                Log::warning('AllEventsScraper: failed to process event URL', [
-                    'url' => $url,
-                    'error' => $e->getMessage(),
-                ]);
-            }
-        }
-
-        return $upserted;
+        return 'allevents';
     }
 
-    private function fetchListingUrls(): array
+    protected function allowedHosts(): array
+    {
+        return ['allevents.in', 'www.allevents.in'];
+    }
+
+    protected function fetchListingUrls(): array
     {
         $response = Http::timeout(20)->get(self::LISTING_URL);
         if (!$response->ok()) {
-            Log::warning('AllEventsScraper: listing page request failed', [
+            Log::warning($this->source() . ': listing page request failed', [
                 'status' => $response->status(),
             ]);
 
@@ -78,7 +46,7 @@ class AllEventsScraper implements ScraperInterface
             if (!$href || !is_string($href)) {
                 continue;
             }
-            if (!UrlSafety::isAllowedHostUrl($href, self::ALLOWED_HOSTS)) {
+            if (!UrlSafety::isAllowedHostUrl($href, $this->allowedHosts())) {
                 continue;
             }
             if (preg_match('~^https?://allevents\.in/ostrava/[^"\']+/(\d{6,})$~', $href)) {
@@ -89,20 +57,8 @@ class AllEventsScraper implements ScraperInterface
         return array_values(array_unique($urls));
     }
 
-    private function fetchAndParseDetail(string $url): ?EventData
+    protected function parseDetailPage(Crawler $crawler, string $url): ?EventData
     {
-        if (!UrlSafety::isAllowedHostUrl($url, self::ALLOWED_HOSTS)) {
-            return null;
-        }
-
-        $response = Http::timeout(20)->get($url);
-        if (!$response->ok()) {
-            return null;
-        }
-
-        $html = $response->body();
-        $crawler = new Crawler($html);
-
         $title = trim($crawler->filter('h1')->first()->text(''));
         if ($title === '') {
             $title = trim($crawler->filter('title')->first()->text(''));
@@ -118,16 +74,16 @@ class AllEventsScraper implements ScraperInterface
         $sourceEventId = $m[1];
 
         $text = $crawler->text();
-        $startAt = $this->parseDateFromText($text);
+        $startAt = $this->parseEnglishDateFromText($text);
         if (!$startAt) {
             return null;
         }
 
         [$locationName, $address] = $this->extractLocationFromText($text);
-        $description = $this->extractDescriptionFromText($text) ?? null;
+        $description = $this->extractDescriptionFromText($text);
 
         return new EventData(
-            source: self::SOURCE,
+            source: $this->source(),
             sourceUrl: $url,
             sourceEventId: $sourceEventId,
             title: $title,
@@ -147,19 +103,15 @@ class AllEventsScraper implements ScraperInterface
         );
     }
 
-    private function parseDateFromText(string $text): ?Carbon
+    private function parseEnglishDateFromText(string $text): ?Carbon
     {
         if (!preg_match('~([A-Za-z]{3},\s+\d{1,2}\s+[A-Za-z]{3},\s+\d{4}\s+at\s+\d{1,2}:\d{2}\s+[ap]m)~', $text, $m)) {
             return null;
         }
-        $timezone = 'UTC';
-        if (in_array('Europe/Prague', \DateTimeZone::listIdentifiers(), true)) {
-            $timezone = 'Europe/Prague';
-        }
 
         try {
-            return Carbon::createFromFormat('D, j M, Y \a\t g:i a', $m[1], $timezone);
-        } catch (\Throwable $e) {
+            return Carbon::createFromFormat('D, j M, Y \a\t g:i a', $m[1], 'Europe/Prague');
+        } catch (\Throwable) {
             return null;
         }
     }
@@ -196,10 +148,5 @@ class AllEventsScraper implements ScraperInterface
         }
 
         return null;
-    }
-
-    private function upsertEvent(EventData $data): bool
-    {
-        return $this->upsertService->upsert($data);
     }
 }

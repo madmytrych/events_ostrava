@@ -10,19 +10,13 @@ class ScrapeVisitOstrava extends Command
 {
     protected $signature = 'events:scrape-visitostrava {--days=14}';
 
-    protected $description = 'Scrape VisitOstrava family events and upsert into DB';
+    protected $description = 'Scrape VisitOstrava family events (alias for events:scrape visitostrava)';
 
-    public function handle(\App\Services\Scrapers\VisitOstravaScraper $scraper): int
+    public function handle(): int
     {
-        $days = (int) $this->option('days');
-        if ($days <= 0) {
-            $days = 14;
-        }
-
-        $count = $scraper->run($days);
-
-        $this->info("Upserted {$count} events.");
-
-        return self::SUCCESS;
+        return $this->call('events:scrape', [
+            'source' => 'visitostrava',
+            '--days' => $this->option('days'),
+        ]);
     }
 }

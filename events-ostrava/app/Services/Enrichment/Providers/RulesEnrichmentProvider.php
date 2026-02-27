@@ -38,7 +38,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
 
     private function deriveFields(array $input): array
     {
-        $text = $this->normalizeText(($input['title'] ?? '').' '.($input['description_raw'] ?? ''));
+        $text = $this->normalizeText(($input['title'] ?? '') . ' ' . ($input['description_raw'] ?? ''));
 
         [$ageMin, $ageMax] = $this->extractAgeRange($text);
         $kidFriendly = $this->detectKidFriendly($text, $ageMin, $ageMax);
@@ -175,7 +175,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
         }
 
         if (mb_strlen($text) > 200) {
-            $text = mb_substr($text, 0, 197).'...';
+            $text = mb_substr($text, 0, 197) . '...';
         }
 
         return $text;
@@ -184,9 +184,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
     private function normalizeText(string $text): string
     {
         $text = mb_strtolower($text);
-        $text = preg_replace('/\s+/', ' ', $text);
-
-        return $text;
+        return preg_replace('/\s+/', ' ', $text);
     }
 
     private function hasAny(string $text, array $needles): bool

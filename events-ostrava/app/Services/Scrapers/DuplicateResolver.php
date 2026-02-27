@@ -17,7 +17,7 @@ final class DuplicateResolver
         $venueNormalized = mb_strtolower(trim($venue ?? ''));
         $date = $startAt->format('Y-m-d H:i');
 
-        return sha1($titleNormalized.'|'.$date.'|'.$venueNormalized);
+        return sha1($titleNormalized . '|' . $date . '|' . $venueNormalized);
     }
 
     public function findDuplicateCandidate(EventData $data): ?Event

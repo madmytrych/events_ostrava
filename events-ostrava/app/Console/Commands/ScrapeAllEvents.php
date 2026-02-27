@@ -4,25 +4,19 @@ declare(strict_types=1);
 
 namespace App\Console\Commands;
 
-use App\Services\Scrapers\AllEventsScraper;
 use Illuminate\Console\Command;
 
 class ScrapeAllEvents extends Command
 {
     protected $signature = 'events:scrape-allevents {--days=60}';
 
-    protected $description = 'Scrape kids events from AllEvents.in';
+    protected $description = 'Scrape kids events from AllEvents.in (alias for events:scrape allevents)';
 
-    public function handle(AllEventsScraper $scraper): int
+    public function handle(): int
     {
-        $days = (int) $this->option('days');
-        if ($days <= 0) {
-            $days = 60;
-        }
-
-        $count = $scraper->run($days);
-        $this->info('Scraped ' . $count . ' AllEvents events.');
-
-        return self::SUCCESS;
+        return $this->call('events:scrape', [
+            'source' => 'allevents',
+            '--days' => $this->option('days'),
+        ]);
     }
 }
