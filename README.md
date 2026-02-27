@@ -157,6 +157,7 @@ FLUSH PRIVILEGES;
 ### Initialize app
 ```bash
 php artisan migrate &&
+php artisan events:scrape ostravainfo --days=30 &&
 php artisan events:scrape visitostrava --days=14 &&
 php artisan events:scrape allevents --days=60 &&
 php artisan events:scrape kulturajih --days=30 &&
@@ -217,6 +218,7 @@ TELEGRAM_BOT_TOKEN=
 
 Unified command — pass the source name as the first argument:
 ```bash
+php artisan events:scrape ostravainfo --days=30   # Official source - run FIRST
 php artisan events:scrape visitostrava --days=14
 php artisan events:scrape allevents --days=60
 php artisan events:scrape kulturajih --days=30

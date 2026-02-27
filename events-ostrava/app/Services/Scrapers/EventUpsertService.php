@@ -14,6 +14,7 @@ final readonly class EventUpsertService
 
     public function upsert(EventData $data): bool
     {
+        // Calculate fingerprint first (before any DB operations)
         if ($data->fingerprint === '') {
             $data->fingerprint = $this->duplicateResolver->fingerprint(
                 $data->title,
@@ -22,11 +23,13 @@ final readonly class EventUpsertService
             );
         }
 
+        // Check if this exact event from this source already exists
         $event = (new Event)->where('source', $data->source)
             ->where('source_event_id', $data->sourceEventId)
             ->first();
 
         if ($event) {
+            // Update existing event from same source
             $event->fill($data->toArray());
             if ($event->isDirty()) {
                 $event->save();
@@ -37,6 +40,25 @@ final readonly class EventUpsertService
             return false;
         }
 
+        // Check for duplicate by fingerprint BEFORE creating new event
+        // This prevents enriching duplicates (saves money)
+        $existingByFingerprint = Event::query()
+            ->where('fingerprint', $data->fingerprint)
+            ->whereNull('duplicate_of_event_id') // Only match root events
+            ->orderBy('id')
+            ->first();
+
+        if ($existingByFingerprint) {
+            // Found exact fingerprint match - create as duplicate without enriching
+            $eventData = $data->toArray();
+            $eventData['duplicate_of_event_id'] = $existingByFingerprint->id;
+            $eventData['status'] = 'new';
+            (new Event)->create($eventData);
+
+            return true;
+        }
+
+        // Fallback to fuzzy matching (similar_text algorithm)
         $duplicate = $this->duplicateResolver->findDuplicateCandidate($data);
         if ($duplicate) {
             $eventData = $data->toArray();
@@ -48,6 +70,7 @@ final readonly class EventUpsertService
         $eventData['status'] = 'new';
         $created = (new Event)->create($eventData);
 
+        // Only enrich if it's not a duplicate (saves money)
         if (!isset($eventData['duplicate_of_event_id'])) {
             EnrichEventJob::dispatch($created->id);
         }
