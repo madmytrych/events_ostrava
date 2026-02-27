@@ -22,6 +22,7 @@ final class DuplicateResolver
 
     public function findDuplicateCandidate(EventData $data): ?Event
     {
+        // 1. Check by fingerprint (most reliable)
         $fingerprintMatch = Event::query()
             ->where('fingerprint', $data->fingerprint)
             ->orderBy('id')
@@ -31,6 +32,36 @@ final class DuplicateResolver
             return $fingerprintMatch;
         }
 
+        // 2. Check by source_event_id across known related sources
+        // visitostrava.eu and ostravainfo.cz share the same event IDs
+        $relatedSources = $this->getRelatedSources($data->source);
+        if (!empty($relatedSources)) {
+            $sourceIdMatch = Event::query()
+                ->whereIn('source', $relatedSources)
+                ->where('source_event_id', $data->sourceEventId)
+                ->orderBy('id')
+                ->first();
+
+            if ($sourceIdMatch) {
+                return $sourceIdMatch;
+            }
+        }
+
+        // 3. Check by URL pattern (extract ID from URL)
+        if (preg_match('~/(\d+)-[^/]+\.html$~', $data->sourceUrl, $matches)) {
+            $urlEventId = $matches[1];
+            $urlMatch = Event::query()
+                ->where('source_url', 'LIKE', "%/{$urlEventId}-%")
+                ->where('source', '!=', $data->source)
+                ->orderBy('id')
+                ->first();
+
+            if ($urlMatch) {
+                return $urlMatch;
+            }
+        }
+
+        // 4. Fuzzy matching by title + location (fallback for other sources)
         $title = $this->normalizeText($data->title);
         $location = $this->normalizeText($data->locationName ?? $data->venue ?? '');
 
@@ -70,6 +101,24 @@ final class DuplicateResolver
         }
 
         return $best;
+    }
+
+    /**
+     * Get sources that are known to share the same event IDs
+     */
+    private function getRelatedSources(string $source): array
+    {
+        $relatedGroups = [
+            ['visitostrava', 'ostravainfo'],
+        ];
+
+        foreach ($relatedGroups as $group) {
+            if (in_array($source, $group, true)) {
+                return array_values(array_diff($group, [$source]));
+            }
+        }
+
+        return [];
     }
 
     private const int MAX_DUPLICATE_CHAIN_DEPTH = 10;

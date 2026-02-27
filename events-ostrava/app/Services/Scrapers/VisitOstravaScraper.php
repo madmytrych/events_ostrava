@@ -84,7 +84,11 @@ final class VisitOstravaScraper extends AbstractScraper
 
     protected function parseDetailPage(Crawler $crawler, string $url): ?EventData
     {
-        $title = \trim($crawler->filter('h1')->first()->text(''));
+        // Get the event title from .box-header__title, not the first h1 (which is the site header)
+        $title = '';
+        if ($crawler->filter('.box-header__title')->count()) {
+            $title = \trim($crawler->filter('.box-header__title')->first()->text(''));
+        }
         if ($title === '') {
             return null;
         }
