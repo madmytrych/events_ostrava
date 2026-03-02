@@ -81,6 +81,9 @@ final class KudyZNudyScraper extends AbstractScraper
         return $response->body();
     }
 
+    /**
+     * @throws \JsonException
+     */
     protected function parseDetailPage(Crawler $crawler, string $url): ?EventData
     {
         $jsonLd = $this->extractEventJsonLd($crawler);
@@ -151,7 +154,9 @@ final class KudyZNudyScraper extends AbstractScraper
         }
 
         $result = null;
-        $scripts->each(function (Crawler $script) use (&$result) {
+        $scripts->each(/**
+         * @throws \JsonException
+         */ function (Crawler $script) use (&$result) {
             if ($result) {
                 return;
             }

@@ -7,12 +7,13 @@ namespace App\Services\Enrichment;
 use App\DTO\EnrichmentResult;
 use App\Models\Event;
 use App\Services\Enrichment\Contracts\EnrichmentProviderInterface;
+use App\Services\Enrichment\Providers\RulesEnrichmentProvider;
 
-final class EnrichmentService
+final readonly class EnrichmentService
 {
     public function __construct(
-        private readonly EnrichmentProviderInterface $aiProvider,
-        private readonly EnrichmentProviderInterface $rulesProvider
+        private EnrichmentProviderInterface $aiProvider,
+        private RulesEnrichmentProvider $rulesProvider
     ) {}
 
     /**
@@ -30,6 +31,14 @@ final class EnrichmentService
             try {
                 $result = $this->aiProvider->enrich($event, 'ai');
                 $usedMode = 'ai';
+
+                if ($result->fields['age_min'] === null && $result->fields['age_max'] === null) {
+                    [$ageMin, $ageMax] = $this->rulesProvider->extractAgeFromEvent($event);
+                    if ($ageMin !== null || $ageMax !== null) {
+                        $result->fields['age_min'] = $ageMin;
+                        $result->fields['age_max'] = $ageMax;
+                    }
+                }
             } catch (\Throwable $e) {
                 if ($mode !== 'hybrid') {
                     throw $e;

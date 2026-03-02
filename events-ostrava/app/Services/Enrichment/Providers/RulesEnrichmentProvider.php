@@ -62,7 +62,7 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
             return [(int) $m[1], (int) $m[2]];
         }
 
-        if (preg_match('~\b(\d{1,2})\s*\+\s*(let|roku|years)?\b~u', $text, $m)) {
+        if (preg_match('~\b(\d{1,2})\s*\+(\s*(?:let|roku|years)\b)?~u', $text, $m)) {
             return [(int) $m[1], null];
         }
 
@@ -77,6 +77,20 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
         return [null, null];
     }
 
+    /**
+     * Extract age range from event text. Used to supplement AI when it returns null for age.
+     *
+     * @return array{0: int|null, 1: int|null} [ageMin, ageMax]
+     */
+    public function extractAgeFromEvent(Event $event): array
+    {
+        $text = $this->normalizeText(
+            ($event->title ?? '') . ' ' . ($event->description_raw ?? $event->description ?? '')
+        );
+
+        return $this->extractAgeRange($text);
+    }
+
     private function detectKidFriendly(string $text, ?int $ageMin, ?int $ageMax): ?bool
     {
         if ($ageMin !== null || $ageMax !== null) {
@@ -84,10 +98,8 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
         }
 
         $keywords = ['děti', 'dets', 'rodinn', 'family', 'kids', 'pohádk', 'loutk'];
-        foreach ($keywords as $keyword) {
-            if (str_contains($text, $keyword)) {
-                return true;
-            }
+        if (array_any($keywords, fn ($keyword) => str_contains($text, $keyword))) {
+            return true;
         }
 
         return null;
@@ -184,17 +196,13 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
     private function normalizeText(string $text): string
     {
         $text = mb_strtolower($text);
+
         return preg_replace('/\s+/', ' ', $text);
     }
 
     private function hasAny(string $text, array $needles): bool
     {
-        foreach ($needles as $needle) {
-            if (str_contains($text, $needle)) {
-                return true;
-            }
-        }
+        return array_any($needles, fn ($needle) => str_contains($text, $needle));
 
-        return false;
     }
 }

@@ -87,8 +87,10 @@ services:
     volumes:
       - ./:/var/www/html
     depends_on:
-      - db
-      - redis
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     command: ["php", "artisan", "telegram:poll", "--timeout=30", "--sleep=2"]
     networks:
       - events
