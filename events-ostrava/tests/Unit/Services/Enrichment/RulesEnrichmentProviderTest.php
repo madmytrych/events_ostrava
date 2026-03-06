@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Enrichment;
 
+use App\Constants\EventSummary;
 use App\Services\Enrichment\Providers\RulesEnrichmentProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -16,7 +17,7 @@ class RulesEnrichmentProviderTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->provider = new RulesEnrichmentProvider();
+        $this->provider = new RulesEnrichmentProvider;
     }
 
     private function callDeriveFields(array $input): array
@@ -227,16 +228,15 @@ class RulesEnrichmentProviderTest extends TestCase
         $this->assertSame('My Event Title', $result);
     }
 
-    public function test_build_summary_truncates_to_200_chars(): void
+    public function test_build_summary_truncates_to_max_length(): void
     {
-        $long = str_repeat('a', 250);
+        $long = str_repeat('a', EventSummary::MAX_LENGTH + 50);
         $result = $this->callBuildSummary([
             'title' => 'Title',
             'description_raw' => $long,
         ]);
 
-        $this->assertSame(200, mb_strlen($result));
-        $this->assertStringEndsWith('...', $result);
+        $this->assertSame(EventSummary::MAX_LENGTH, mb_strlen($result));
     }
 
     public function test_build_summary_returns_null_for_empty_input(): void

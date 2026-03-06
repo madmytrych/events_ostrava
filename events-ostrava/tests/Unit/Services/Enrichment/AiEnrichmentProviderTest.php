@@ -4,8 +4,9 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Enrichment;
 
-use App\Services\Enrichment\Providers\AiEnrichmentProvider;
+use App\Constants\EventSummary;
 use App\Services\Enrichment\Contracts\LlmClientInterface;
+use App\Services\Enrichment\Providers\AiEnrichmentProvider;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use ReflectionMethod;
@@ -125,13 +126,28 @@ class AiEnrichmentProviderTest extends TestCase
         ];
     }
 
-    public function test_normalize_summary_truncates_to_200(): void
+    public function test_normalize_summary_truncates_to_max_length(): void
     {
         $method = new ReflectionMethod(AiEnrichmentProvider::class, 'normalizeSummary');
-        $long = str_repeat('x', 250);
+        $long = str_repeat('x', EventSummary::MAX_LENGTH + 50);
         $result = $method->invoke($this->provider, $long);
 
-        $this->assertSame(200, mb_strlen($result));
+        $this->assertSame(EventSummary::MAX_LENGTH, mb_strlen($result));
+    }
+
+    public function test_normalize_summary_truncates_at_word_boundary(): void
+    {
+        $method = new ReflectionMethod(AiEnrichmentProvider::class, 'normalizeSummary');
+        $long = str_repeat('word ', 70) . 'approach';
+        $this->assertGreaterThan(EventSummary::MAX_LENGTH, mb_strlen($long));
+
+        $result = $method->invoke($this->provider, $long);
+
+        $this->assertStringNotContainsString(
+            'appro',
+            $result,
+            'Summary should not contain the partial word that would have been cut mid-word'
+        );
     }
 
     // --- normalizeFields (integration of all normalizers) ---

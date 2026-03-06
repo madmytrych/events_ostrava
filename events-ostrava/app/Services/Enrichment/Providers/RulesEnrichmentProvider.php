@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\Services\Enrichment\Providers;
 
+use App\Constants\EventSummary;
 use App\DTO\EnrichmentResult;
 use App\Models\Event;
 use App\Models\EventEnrichmentLog;
 use App\Services\Enrichment\Contracts\EnrichmentProviderInterface;
+use Illuminate\Support\Str;
 
 final class RulesEnrichmentProvider implements EnrichmentProviderInterface
 {
@@ -186,8 +188,8 @@ final class RulesEnrichmentProvider implements EnrichmentProviderInterface
             return null;
         }
 
-        if (mb_strlen($text) > 200) {
-            $text = mb_substr($text, 0, 197) . '...';
+        if (mb_strlen($text) > EventSummary::MAX_LENGTH) {
+            $text = rtrim(Str::limit($text, EventSummary::MAX_LENGTH, '', true));
         }
 
         return $text;

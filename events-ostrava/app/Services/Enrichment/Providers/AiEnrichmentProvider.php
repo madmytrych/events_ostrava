@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Services\Enrichment\Providers;
 
+use App\Constants\EventSummary;
 use App\DTO\EnrichmentResult;
 use App\Models\Event;
 use App\Models\EventEnrichmentLog;
 use App\Services\Enrichment\Contracts\EnrichmentProviderInterface;
 use App\Services\Enrichment\Contracts\LlmClientInterface;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 final readonly class AiEnrichmentProvider implements EnrichmentProviderInterface
 {
@@ -86,11 +88,11 @@ final readonly class AiEnrichmentProvider implements EnrichmentProviderInterface
             'indoor_outdoor ("indoor","outdoor","both","unknown"),',
             'category ("culture","sports","education","nature","theatre","music","festival","workshop","exhibition","other"),',
             'language ("cs","en","mixed","unknown"),',
-            'short_summary (string, max 220 chars),',
+            'short_summary (string, max ' . EventSummary::MAX_LENGTH . ' chars),',
             'title_en (string, English translation of the title),',
             'title_uk (string, Ukrainian translation of the title),',
-            'short_summary_en (string, English translation of the short_summary, max 220 chars),',
-            'short_summary_uk (string, Ukrainian translation of the short_summary, max 220 chars).',
+            'short_summary_en (string, English translation of the short_summary, max ' . EventSummary::MAX_LENGTH . ' chars),',
+            'short_summary_uk (string, Ukrainian translation of the short_summary, max ' . EventSummary::MAX_LENGTH . ' chars).',
             '',
             'If unsure, use null or "unknown". Keep summaries factual and concise.',
             'Translations must preserve the original meaning. If the title is already in the target language, repeat it as-is.',
@@ -192,23 +194,11 @@ final readonly class AiEnrichmentProvider implements EnrichmentProviderInterface
         if ($summary === '') {
             return null;
         }
-        if (mb_strlen($summary) > 220) {
-            $summary = $this->truncateAtWordBoundary($summary);
+        if (mb_strlen($summary) > EventSummary::MAX_LENGTH) {
+            $summary = rtrim(Str::limit($summary, EventSummary::MAX_LENGTH, '', true));
         }
 
         return $summary;
-    }
-
-    private function truncateAtWordBoundary(string $text): string
-    {
-        $cut = mb_substr($text, 0, 220);
-        $lastSpace = mb_strrpos($cut, ' ');
-
-        if ($lastSpace !== false && $lastSpace >= (int) (220 * 0.6)) {
-            return mb_substr($text, 0, $lastSpace);
-        }
-
-        return $cut;
     }
 
     private function normalizeTranslation(mixed $value): ?string

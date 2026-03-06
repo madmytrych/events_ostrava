@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Bot;
 
+use App\Constants\EventSummary;
 use App\Models\Event;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
@@ -93,7 +94,7 @@ final class TelegramEventFormatter
     {
         $summary = trim(preg_replace('/\s+/', ' ', (string) $text));
 
-        return Str::limit($summary, 200, '…');
+        return Str::limit($summary, EventSummary::MAX_LENGTH, '…', true);
     }
 
     private function eventText(Event $event, string $field, string $lang): string
@@ -122,7 +123,7 @@ final class TelegramEventFormatter
         }
 
         if ($event->age_min !== null && $event->age_max !== null) {
-            return $event->age_min.'–'.$event->age_max;
+            return $event->age_min . '–' . $event->age_max;
         }
 
         if ($event->age_min !== null) {
@@ -155,10 +156,10 @@ final class TelegramEventFormatter
             ->locale($this->carbonLocale($lang));
 
         if ($start->toDateString() === $end->toDateString()) {
-            return $start->translatedFormat('D H:i').'–'.$end->translatedFormat('H:i');
+            return $start->translatedFormat('D H:i') . '–' . $end->translatedFormat('H:i');
         }
 
-        return $start->translatedFormat('D H:i').'–'.$end->translatedFormat('D H:i');
+        return $start->translatedFormat('D H:i') . '–' . $end->translatedFormat('D H:i');
     }
 
     private function formatLocation(Event $event, string $lang): string

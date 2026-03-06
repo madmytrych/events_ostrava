@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Unit\Services\Bot;
 
+use App\Constants\EventSummary;
 use App\Models\Event;
 use App\Services\Bot\TelegramEventFormatter;
 use App\Services\Bot\TelegramTextService;
@@ -17,7 +18,7 @@ class TelegramEventFormatterTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->formatter = new TelegramEventFormatter(new TelegramTextService());
+        $this->formatter = new TelegramEventFormatter(new TelegramTextService);
     }
 
     private function makeEvent(array $attrs = []): Event
@@ -40,7 +41,7 @@ class TelegramEventFormatterTest extends TestCase
             'short_summary_i18n' => null,
         ];
 
-        $event = new Event();
+        $event = new Event;
         foreach (array_merge($defaults, $attrs) as $key => $value) {
             $event->setAttribute($key, $value);
         }
@@ -219,5 +220,27 @@ class TelegramEventFormatterTest extends TestCase
         $output = $this->formatter->formatEvent($event, 'en');
 
         $this->assertStringContainsString('Short description is not available yet.', $output);
+    }
+
+    public function test_summary_truncates_at_word_boundary_when_over_limit(): void
+    {
+        $longSummary = str_repeat('word ', 59) . 'wordxy';
+        $this->assertGreaterThan(EventSummary::MAX_LENGTH, mb_strlen($longSummary));
+
+        $event = $this->makeEvent([
+            'short_summary' => null,
+            'summary' => $longSummary,
+        ]);
+
+        $output = $this->formatter->formatEvent($event, 'en');
+
+        $lines = explode("\n", $output);
+        $summaryLine = $lines[6];
+        $this->assertStringEndsWith('…', $summaryLine);
+        $this->assertStringNotContainsString(
+            'wordx',
+            $summaryLine,
+            'Summary should not contain the partial word that would have been cut mid-word'
+        );
     }
 }
