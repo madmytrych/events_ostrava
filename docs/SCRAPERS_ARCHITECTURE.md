@@ -34,7 +34,7 @@ flowchart TB
     end
 
     subgraph Security["Security"]
-        US[UrlSafety<br/>static utility]
+        US["UrlSafety - static utility"]
     end
 
     subgraph Data["Data Layer"]

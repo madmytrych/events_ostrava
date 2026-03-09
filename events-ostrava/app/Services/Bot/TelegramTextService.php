@@ -39,7 +39,7 @@ final class TelegramTextService
         );
     }
 
-    public function settingsText(string $lang, bool $notifyEnabled, ?bool $notifyNewEvents = false): string
+    public function settingsText(string $lang, bool $notifyEnabled, ?bool $notifyNewEvents = false, ?int $ageMin = null, ?int $ageMax = null): string
     {
         $weeklyState = $notifyEnabled
             ? $this->text($lang, 'notify_state_on')
@@ -49,8 +49,15 @@ final class TelegramTextService
             ? $this->text($lang, 'notify_state_on')
             : $this->text($lang, 'notify_state_off');
 
+        $ageValue = ($ageMin !== null && $ageMax !== null)
+            ? $ageMin . '–' . $ageMax
+            : $this->text($lang, 'all_ages');
+
         return implode("\n", [
             $this->text($lang, 'settings_title'),
+            $this->replacePlaceholders($this->text($lang, 'settings_age_status'), [
+                'value' => $ageValue,
+            ]),
             $this->replacePlaceholders($this->text($lang, 'settings_weekly_status'), [
                 'value' => $weeklyState,
             ]),

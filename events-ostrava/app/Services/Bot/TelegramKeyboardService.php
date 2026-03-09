@@ -62,6 +62,9 @@ final class TelegramKeyboardService
                     ['text' => $this->texts->buttonText($lang, 'change_language')],
                 ],
                 [
+                    ['text' => $this->texts->buttonText($lang, 'change_age')],
+                ],
+                [
                     ['text' => $this->texts->settingsNotifyButtonText($lang, $notifyEnabled)],
                     ['text' => $this->texts->settingsNewEventsButtonText($lang, $notifyNewEvents)],
                 ],

@@ -20,7 +20,7 @@ return [
     | gemini-2.0-flash-lite: up to 30 RPM free.
     */
     'gemini_api_key' => env('ENRICHMENT_GEMINI_API_KEY'),
-    'gemini_model' => env('ENRICHMENT_GEMINI_MODEL', 'gemini-2.5-flash'),
+    'gemini_model' => env('ENRICHMENT_GEMINI_MODEL', 'gemini-2.5-flash-lite'),
     'gemini_timeout' => (int) env('ENRICHMENT_GEMINI_TIMEOUT', 45),
 
     /*

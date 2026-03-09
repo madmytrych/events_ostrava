@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests\Feature\Bot;
 
+use App\Constants\EventSubmission as EventSubmissionLimits;
 use App\Models\EventSubmission;
 use App\Models\TelegramUser;
 use App\Services\Bot\TelegramSubmissionService;
@@ -171,7 +172,7 @@ class TelegramSubmissionServiceTest extends TestCase
         $this->service->start($user);
         $this->service->handleInput($user, 'https://example.com/event/123', 'en', null);
 
-        $longName = str_repeat('a', 201);
+        $longName = str_repeat('a', EventSubmissionLimits::MAX_NAME_LENGTH + 1);
         $result = $this->service->handleInput($user, $longName, 'en', null);
 
         $user->refresh();

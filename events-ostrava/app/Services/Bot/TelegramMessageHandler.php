@@ -80,7 +80,7 @@ final class TelegramMessageHandler
 
         if ($action === 'settings') {
             return [
-                'text' => $this->texts->settingsText($lang, $user->notify_enabled, $user->notify_new_events),
+                'text' => $this->texts->settingsText($lang, $user->notify_enabled, $user->notify_new_events, $user->age_min, $user->age_max),
                 'reply_markup' => $this->keyboards->settings($lang, $user->notify_enabled, $user->notify_new_events),
             ];
         }
@@ -339,6 +339,7 @@ final class TelegramMessageHandler
             'by_age' => $this->texts->buttonText($lang, 'by_age'),
             'settings' => $this->texts->buttonText($lang, 'settings'),
             'change_language' => $this->texts->buttonText($lang, 'change_language'),
+            'change_age' => $this->texts->buttonText($lang, 'change_age'),
             'about' => $this->texts->buttonText($lang, 'about'),
             'back' => $this->texts->buttonText($lang, 'back'),
             'submit_event' => $this->texts->buttonText($lang, 'submit_event'),

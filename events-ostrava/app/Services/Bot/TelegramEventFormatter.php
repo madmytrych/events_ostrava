@@ -39,22 +39,30 @@ final class TelegramEventFormatter
 
     public function formatDigest($events, string $lang): string
     {
-        $lines = [$this->texts->text($lang, 'digest_title')];
+        $divider = $this->texts->eventDivider($lang);
+        $header = $this->texts->text($lang, 'digest_intro') . "\n\n" . $this->texts->text($lang, 'digest_title');
+        $eventLines = [];
         foreach ($events->take(7) as $event) {
-            $lines[] = $this->formatEvent($event, $lang);
+            $eventLines[] = $this->formatEvent($event, $lang);
         }
+        $eventsBlock = implode("\n\n" . $divider . "\n\n", $eventLines);
+        $footer = $this->texts->text($lang, 'notify_settings_hint');
 
-        return implode("\n\n" . $this->texts->eventDivider($lang) . "\n\n", $lines);
+        return $header . "\n\n" . $divider . "\n\n" . $eventsBlock . "\n\n" . $footer;
     }
 
     public function formatNewEventsAlert($events, string $lang): string
     {
-        $lines = [$this->texts->text($lang, 'new_events_title')];
+        $divider = $this->texts->eventDivider($lang);
+        $header = $this->texts->text($lang, 'new_events_intro') . "\n\n" . $this->texts->text($lang, 'new_events_title');
+        $eventLines = [];
         foreach ($events->take(7) as $event) {
-            $lines[] = $this->formatEvent($event, $lang);
+            $eventLines[] = $this->formatEvent($event, $lang);
         }
+        $eventsBlock = implode("\n\n" . $divider . "\n\n", $eventLines);
+        $footer = $this->texts->text($lang, 'notify_settings_hint');
 
-        return implode("\n\n" . $this->texts->eventDivider($lang) . "\n\n", $lines);
+        return $header . "\n\n" . $divider . "\n\n" . $eventsBlock . "\n\n" . $footer;
     }
 
     public function formatEvent(Event $event, string $lang): string

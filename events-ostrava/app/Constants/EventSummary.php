@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Constants;
 
-final class EventSummary
+enum EventSummary
 {
-    public const int MAX_LENGTH = 300;
+    public const int MAX_LENGTH = 350;
 }

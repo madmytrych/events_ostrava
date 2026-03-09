@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Services\Bot;
 
+use App\Constants\EventSubmission as EventSubmissionLimits;
 use App\Models\EventSubmission;
 use App\Models\TelegramUser;
 use App\Services\Security\UrlSafety;
@@ -72,7 +73,7 @@ final class TelegramSubmissionService
 
         if ($user->submission_state === 'name') {
             if ($action !== 'skip') {
-                $name = $this->sanitizeText($rawText, 200);
+                $name = $this->sanitizeText($rawText, EventSubmissionLimits::MAX_NAME_LENGTH);
                 if ($name === null) {
                     return [
                         'text' => $this->texts->text($lang, 'submit_too_long'),
@@ -112,7 +113,7 @@ final class TelegramSubmissionService
 
         if ($user->submission_state === 'contact') {
             if ($action !== 'skip') {
-                $contact = $this->sanitizeText($rawText, 200);
+                $contact = $this->sanitizeText($rawText, EventSubmissionLimits::MAX_CONTACT_LENGTH);
                 if ($contact === null) {
                     return [
                         'text' => $this->texts->text($lang, 'submit_too_long'),

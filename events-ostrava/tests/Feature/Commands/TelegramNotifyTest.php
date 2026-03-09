@@ -149,4 +149,39 @@ class TelegramNotifyTest extends TestCase
         $this->artisan('telegram:notify')
             ->assertExitCode(1);
     }
+
+    public function test_age_filter_excludes_non_matching_events(): void
+    {
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        Carbon::setTestNow(Carbon::parse('2026-03-04 10:00:00', 'Europe/Prague'));
+        $user = $this->createUser(['age_min' => 3, 'age_max' => 6]);
+        $this->createWeekendEvent(['age_min' => 10, 'age_max' => 15]);
+
+        $this->artisan('telegram:notify')
+            ->assertExitCode(0);
+
+        Http::assertNothingSent();
+    }
+
+    public function test_age_filter_includes_matching_events(): void
+    {
+        Http::fake([
+            'api.telegram.org/*' => Http::response(['ok' => true], 200),
+        ]);
+
+        Carbon::setTestNow(Carbon::parse('2026-03-04 10:00:00', 'Europe/Prague'));
+        $user = $this->createUser(['age_min' => 3, 'age_max' => 6]);
+        $this->createWeekendEvent(['age_min' => 3, 'age_max' => 6]);
+
+        $this->artisan('telegram:notify')
+            ->assertExitCode(0);
+
+        Http::assertSent(function ($request) use ($user) {
+            return str_contains($request->url(), 'sendMessage')
+                && $request->data()['chat_id'] === $user->chat_id;
+        });
+    }
 }
