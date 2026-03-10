@@ -18,6 +18,10 @@ RUN docker-php-ext-configure intl \
 RUN pecl install xdebug \
  && docker-php-ext-enable xdebug
 
+# Redis
+RUN pecl install redis \
+ && docker-php-ext-enable redis
+
 # Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
