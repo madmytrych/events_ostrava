@@ -127,7 +127,9 @@ final class TelegramEventFormatter
     private function formatAge(Event $event, string $lang): string
     {
         if ($event->age_min === null && $event->age_max === null) {
-            return $this->texts->text($lang, 'all_ages');
+            return $event->kid_friendly === false
+                ? $this->texts->text($lang, 'age_6_plus')
+                : $this->texts->text($lang, 'all_ages');
         }
 
         if ($event->age_min !== null && $event->age_max !== null) {

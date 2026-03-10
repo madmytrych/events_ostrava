@@ -38,6 +38,7 @@ return [
     'age_from' => 'from :age',
     'age_to' => 'up to :age',
     'all_ages' => 'All ages',
+    'age_6_plus' => '6+',
     'details' => 'More details',
     'label_today' => 'today',
     'label_tomorrow' => 'tomorrow',

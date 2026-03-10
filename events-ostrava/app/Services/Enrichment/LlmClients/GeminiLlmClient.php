@@ -12,7 +12,7 @@ final readonly class GeminiLlmClient implements LlmClientInterface
 {
     public function __construct(
         private string $apiKey,
-        private string $model = 'gemini-2.0-flash-lite',
+        private string $model = 'gemini-2.5-flash-lite',
         private int $timeout = 45,
     ) {}
 

@@ -90,10 +90,30 @@ class TelegramEventFormatterTest extends TestCase
 
     public function test_format_age_all_ages(): void
     {
+        $event = $this->makeEvent(['age_min' => null, 'age_max' => null, 'kid_friendly' => true]);
+        $output = $this->formatter->formatEvent($event, 'en');
+
+        $this->assertStringContainsString('All ages', $output);
+    }
+
+    public function test_format_age_all_ages_when_kid_friendly_null(): void
+    {
         $event = $this->makeEvent(['age_min' => null, 'age_max' => null]);
         $output = $this->formatter->formatEvent($event, 'en');
 
         $this->assertStringContainsString('All ages', $output);
+    }
+
+    public function test_format_age_6_plus_when_not_kid_friendly(): void
+    {
+        $event = $this->makeEvent([
+            'age_min' => null,
+            'age_max' => null,
+            'kid_friendly' => false,
+        ]);
+        $output = $this->formatter->formatEvent($event, 'en');
+
+        $this->assertStringContainsString('6+', $output);
     }
 
     public function test_format_age_range(): void

@@ -38,6 +38,7 @@ return [
     'age_from' => 'od :age',
     'age_to' => 'do :age',
     'all_ages' => 'Všechny věky',
+    'age_6_plus' => 'Od 6 let',
     'details' => 'Více detailů',
     'label_today' => 'dnes',
     'label_tomorrow' => 'zítra',

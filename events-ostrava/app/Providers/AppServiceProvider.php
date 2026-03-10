@@ -41,7 +41,7 @@ class AppServiceProvider extends ServiceProvider
                 ),
                 default => new GeminiLlmClient(
                     apiKey: (string) config('enrichment.gemini_api_key'),
-                    model: (string) config('enrichment.gemini_model', 'gemini-2.0-flash-lite'),
+                    model: (string) config('enrichment.gemini_model', 'gemini-2.5-flash-lite'),
                     timeout: (int) config('enrichment.gemini_timeout', 45),
                 ),
             };

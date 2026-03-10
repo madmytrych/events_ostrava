@@ -38,6 +38,7 @@ return [
     'age_from' => 'від :age',
     'age_to' => 'до :age',
     'all_ages' => 'Усі віки',
+    'age_6_plus' => 'Від 6 років',
     'details' => 'Детальніше',
     'label_today' => 'сьогодні',
     'label_tomorrow' => 'завтра',

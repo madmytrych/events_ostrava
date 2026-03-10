@@ -95,6 +95,7 @@ final readonly class AiEnrichmentProvider implements EnrichmentProviderInterface
             'short_summary_uk (string, Ukrainian translation of the short_summary, max ' . EventSummary::MAX_LENGTH . ' chars).',
             '',
             'If unsure, use null or "unknown". Keep summaries factual and concise.',
+            'For events that are clearly not for toddlers (lectures, exhibitions, cultural discussions, charity concerts without kid focus): set is_kid_friendly to false and age_min to 6 or 10 when no explicit age is stated.',
             'Translations must preserve the original meaning. If the title is already in the target language, repeat it as-is.',
             '',
             \json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
