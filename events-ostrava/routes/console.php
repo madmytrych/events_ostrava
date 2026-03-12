@@ -4,23 +4,28 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Schedule;
 
+Schedule::command('events:scrape ostravainfo --days=30')
+    ->cron('0 8,18 * * *')
+    ->withoutOverlapping()
+    ->runInBackground();
+
 Schedule::command('events:scrape visitostrava --days=14')
-    ->twiceDaily(6, 18)
+    ->cron('10 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
 Schedule::command('events:scrape allevents --days=60')
-    ->twiceDaily(7, 19)
+    ->cron('20 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
 Schedule::command('events:scrape kulturajih --days=30')
-    ->twiceDaily(8, 20)
+    ->cron('30 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
 Schedule::command('events:scrape kudyznudy --days=30')
-    ->twiceDaily(9, 21)
+    ->cron('40 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
@@ -40,6 +45,6 @@ Schedule::command('telegram:notify')
     ->runInBackground();
 
 Schedule::command('telegram:notify-new')
-    ->dailyAt('10:00')
+    ->cron('30 9,19 * * *')
     ->withoutOverlapping()
     ->runInBackground();
