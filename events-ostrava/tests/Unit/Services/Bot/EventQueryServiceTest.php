@@ -294,4 +294,19 @@ class EventQueryServiceTest extends TestCase
 
         $this->assertCount(0, $events);
     }
+
+    public function test_age_filter_excludes_6_plus_for_user_3_6(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-03-15 08:00:00', 'Europe/Prague'));
+
+        $this->createEvent([
+            'start_at' => Carbon::parse('2026-03-15 14:00:00', 'Europe/Prague'),
+            'age_min' => 6,
+            'age_max' => null,
+        ]);
+
+        $events = $this->service->getTodayEvents(3, 6);
+
+        $this->assertCount(0, $events);
+    }
 }

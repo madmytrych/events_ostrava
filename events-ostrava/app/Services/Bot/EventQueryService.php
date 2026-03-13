@@ -87,8 +87,8 @@ final class EventQueryService
             ->whereNull('duplicate_of_event_id');
 
         if ($ageMin !== null && $ageMax !== null) {
-            $query->where(function ($q) use ($ageMax) {
-                $q->whereNull('age_min')->orWhere('age_min', '<=', $ageMax);
+            $query->where(function ($q) use ($ageMin) {
+                $q->whereNull('age_min')->orWhere('age_min', '<=', $ageMin);
             })->where(function ($q) use ($ageMin) {
                 $q->whereNull('age_max')->orWhere('age_max', '>=', $ageMin);
             });

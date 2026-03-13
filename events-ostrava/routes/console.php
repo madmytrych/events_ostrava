@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use Illuminate\Support\Facades\Schedule;
 
-Schedule::command('events:scrape ostravainfo --days=30')
+Schedule::command('events:scrape ostravainfo --days=7')
     ->cron('0 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
@@ -14,17 +14,17 @@ Schedule::command('events:scrape visitostrava --days=14')
     ->withoutOverlapping()
     ->runInBackground();
 
-Schedule::command('events:scrape allevents --days=60')
+Schedule::command('events:scrape allevents --days=7')
     ->cron('20 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
-Schedule::command('events:scrape kulturajih --days=30')
+Schedule::command('events:scrape kulturajih --days=7')
     ->cron('30 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
 
-Schedule::command('events:scrape kudyznudy --days=30')
+Schedule::command('events:scrape kudyznudy --days=7')
     ->cron('40 8,18 * * *')
     ->withoutOverlapping()
     ->runInBackground();
